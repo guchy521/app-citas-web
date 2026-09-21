@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Solicitar Cita</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="/estilos.css">
+
+  <style>
+    /* Ajustes exclusivos de esta página pública (no van en el archivo compartido
+       porque no aplican al panel admin: header centrado sin logout, pantalla de éxito). */
+    body { padding-top: 0; padding-bottom: 40px; }
+    .header-publico {
+      background: #fff; padding: 22px 16px; text-align: center;
+      border-bottom: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+    .header-publico h5 { color: var(--primary-dark); font-weight: 700; margin: 0; }
+    .contenedor-publico { width: 92%; max-width: 480px; margin: 20px auto; }
+    .pantalla-exito { text-align: center; padding: 40px 20px; }
+    .pantalla-exito i { font-size: 4rem; color: #2e7d32; }
+  </style>
+</head>
+<body>
+
+  <header class="header-publico">
+    <h5 id="tituloNegocio">Solicitar Cita</h5>
+  </header>
+
+  <div class="contenedor-publico">
+
+    <div id="vistaFormulario" class="card-panel-app z-depth-1">
+      <div class="input-field">
+        <input type="text" id="nombre">
+        <label for="nombre">Tu nombre completo</label>
+      </div>
+
+      <label style="color:#616161; font-weight:600; font-size:1rem;">Servicio</label>
+      <div id="containerServicios" class="fila-botones">
+        <em class="grey-text">Cargando servicios...</em>
+      </div>
+
+      <div class="input-field">
+        <input type="date" id="fechaSolo" onchange="generarBotonesHora()">
+        <label for="fechaSolo" class="active">Fecha deseada</label>
+      </div>
+
+      <label style="color:#616161; font-weight:600; font-size:1rem;">Hora deseada</label>
+      <div id="containerHoras" class="fila-botones">
+        <em class="grey-text">Elige una fecha primero</em>
+      </div>
+
+      <button class="btn waves-effect waves-light teal btn-large" style="margin-top:15px; border-radius:10px; width:100%; font-weight:bold;" onclick="enviarSolicitud()">
+        Solicitar Cita <i class="material-icons right">send</i>
+      </button>
+      <p id="mensaje" style="margin-top:10px; font-weight:600;"></p>
+      <p class="grey-text center-align" style="font-size:0.8rem; margin-top:10px;">
+        Esta es una solicitud. El negocio confirmará tu cita a la brevedad.
+      </p>
+    </div>
+
+    <div id="vistaExito" class="card-panel-app z-depth-1 pantalla-exito oculto">
+      <i class="material-icons">check_circle</i>
+      <h5 class="teal-text text-darken-2" style="font-weight:bold;">¡Solicitud enviada!</h5>
+      <p class="grey-text">Nos pondremos en contacto contigo para confirmar tu cita.</p>
+      <button class="btn waves-effect waves-light teal" style="border-radius:10px; margin-top:10px;" onclick="location.reload()">
+        Hacer otra solicitud
+      </button>
+    </div>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const NEGOCIO_SLUG = params.get('negocio');
+
+    let configNegocio = null;
+    let servicioSeleccionado = null;
+    let horaSeleccionada = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+      init();
+    });
+
+    async function init() {
+      if (!NEGOCIO_SLUG) {
+        document.querySelector('.contenedor-publico').innerHTML =
+          '<div class="card-panel-app"><p class="center-align">Falta indicar el negocio en el enlace (?negocio=slug).</p></div>';
+        return;
+      }
+
+      const resCfg = await fetch(`/.netlify/functions/get-config-publico?negocio=${NEGOCIO_SLUG}`);
+      const dataCfg = await resCfg.json();
+
+      if (!dataCfg.ok) {
+        document.querySelector('.contenedor-publico').innerHTML =
+          `<div class="card-panel-app"><p class="center-align red-text">${dataCfg.error}</p></div>`;
+        return;
+      }
+
+      configNegocio = dataCfg.config;
+      document.getElementById('tituloNegocio').innerText = configNegocio.nombre;
+
+      const hoy = new Date();
+      const pad = n => n < 10 ? '0'+n : n;
+      document.getElementById('fechaSolo').min = `${hoy.getFullYear()}-${pad(hoy.getMonth()+1)}-${pad(hoy.getDate())}`;
+      if (configNegocio.dias_max_anticipacion) {
+        const maxF = new Date();
+        maxF.setDate(maxF.getDate() + Number(configNegocio.dias_max_anticipacion));
+        document.getElementById('fechaSolo').max = `${maxF.getFullYear()}-${pad(maxF.getMonth()+1)}-${pad(maxF.getDate())}`;
+      }
+
+      const resServ = await fetch(`/.netlify/functions/get-servicios-publico?negocio=${NEGOCIO_SLUG}`);
+      const dataServ = await resServ.json();
+      if (dataServ.ok) {
+        document.getElementById('containerServicios').innerHTML = dataServ.servicios.map(s => `
+          <button type="button" class="btn-servicio" title="${s.descripcion || ''}" onclick="seleccionarServicio('${s.nombre.replace(/'/g,"\\'")}', this)">${s.nombre}</button>
+        `).join('');
+      }
+    }
+
+    function seleccionarServicio(nombre, btn) {
+      servicioSeleccionado = nombre;
+      document.querySelectorAll('#containerServicios .btn-servicio').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    async function generarBotonesHora() {
+      const cont = document.getElementById('containerHoras');
+      const fechaStr = document.getElementById('fechaSolo').value;
+      horaSeleccionada = null;
+
+      if (!fechaStr) {
+        cont.innerHTML = '<em class="grey-text">Elige una fecha primero</em>';
+        return;
+      }
+
+      cont.innerHTML = '<em class="grey-text">Verificando disponibilidad...</em>';
+
+      const res = await fetch(`/.netlify/functions/get-horas-ocupadas-publico?negocio=${NEGOCIO_SLUG}&fecha=${fechaStr}`);
+      const data = await res.json();
+      const ocupadas = data.ok ? data.ocupadas : [];
+
+      const apertura = parseInt(configNegocio.horario_apertura.split(':')[0], 10);
+      const cierre = parseInt(configNegocio.horario_cierre.split(':')[0], 10);
+
+      let html = '';
+      for (let h = apertura; h < cierre; h++) {
+        const slot = new Date(`${fechaStr}T${h < 10 ? '0'+h : h}:00:00`);
+        let ocupada = false;
+        ocupadas.forEach(o => {
+          const ini = new Date(o.fechaInicio);
+          const fin = new Date(ini.getTime() + (Number(o.tiempo) || 1) * 3600000);
+          if (slot >= ini && slot < fin) ocupada = true;
+        });
+        const valor = (h < 10 ? '0'+h : h) + ':00';
+        html += `<button type="button" class="btn-hora ${ocupada ? 'ocupada' : 'disponible'}" ${ocupada ? 'disabled' : ''} onclick="seleccionarHora('${valor}', this)">${valor}</button>`;
+      }
+      cont.innerHTML = html || '<em class="grey-text">Sin horario configurado.</em>';
+    }
+
+    function seleccionarHora(valor, btn) {
+      horaSeleccionada = valor;
+      document.querySelectorAll('.btn-hora').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    async function enviarSolicitud() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const fechaStr = document.getElementById('fechaSolo').value;
+      const mensajeEl = document.getElementById('mensaje');
+
+      if (!nombre || nombre.length < 2) { mensajeEl.style.color = '#ef6c00'; mensajeEl.innerText = 'Ingresa tu nombre completo.'; return; }
+      if (!servicioSeleccionado) { mensajeEl.style.color = '#ef6c00'; mensajeEl.innerText = 'Selecciona un servicio.'; return; }
+      if (!fechaStr || !horaSeleccionada) { mensajeEl.style.color = '#ef6c00'; mensajeEl.innerText = 'Selecciona fecha y hora.'; return; }
+
+      const fechaInicio = `${fechaStr}T${horaSeleccionada}:00`;
+
+      const res = await fetch('/.netlify/functions/crear-solicitud', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ negocio: NEGOCIO_SLUG, nombre, servicio: servicioSeleccionado, fechaInicio })
+      });
+      const data = await res.json();
+
+      if (!data.exito) {
+        mensajeEl.style.color = '#c62828';
+        mensajeEl.innerText = data.mensaje;
+        return;
+      }
+
+      document.getElementById('vistaFormulario').classList.add('oculto');
+      document.getElementById('vistaExito').classList.remove('oculto');
+    }
+  </script>
+</body>
+</html>

@@ -2,10 +2,814 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>App Citas Web</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>App Citas & Contabilidad</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="/estilos.css">
 </head>
 <body>
-  <h1>¡Funciona! 🎉</h1>
-  <p>Esta es la base de la nueva app web.</p>
+
+  <!-- LOGIN -->
+  <div id="vistaLogin" class="container" style="max-width:380px; margin-top:70px;">
+    <div class="card-panel-app z-depth-1">
+      <div style="text-align:center; margin-bottom:14px;">
+        <div class="brand-logo" style="margin:0 auto 8px;"><i class="material-icons">spa</i></div>
+        <h5 class="teal-text text-darken-2" style="font-weight:bold; margin:0;">Acceso Administrador</h5>
+      </div>
+
+      <div class="input-field">
+        <input type="text" id="inSlug" value="mariyn-nails">
+        <label for="inSlug" class="active">Slug del negocio</label>
+      </div>
+      <div class="input-field">
+        <input type="password" id="inPin">
+        <label for="inPin">PIN</label>
+      </div>
+
+      <button class="btn waves-effect waves-light teal btn-large" style="width:100%; border-radius:10px;" onclick="hacerLogin()">
+        Ingresar <i class="material-icons right">login</i>
+      </button>
+      <p id="errorLogin" style="color:#c62828; text-align:center; margin-top:12px; font-size:0.9rem;"></p>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="vistaApp" class="oculto">
+
+    <header class="app-header">
+      <div class="brand-box">
+        <div class="brand-logo"><i class="material-icons">spa</i></div>
+        <span class="brand-title" id="nombreNegocio">Negocio</span>
+      </div>
+      <div class="header-acciones">
+        <button type="button" class="btn-flat" onclick="cerrarSesionApp()" title="Cerrar sesión">
+          <i class="material-icons">logout</i>
+        </button>
+      </div>
+    </header>
+
+    <div class="container" style="width:95%; max-width:950px;">
+
+      <!-- AGENDAR -->
+      <section id="panelAgendar" class="view-section active">
+        <div class="card-panel-app z-depth-1">
+          <h5 id="tituloFormulario" class="teal-text text-darken-2" style="margin-top:0; font-weight:bold;">Nueva cita</h5>
+          <input type="hidden" id="idEditando" value="">
+          <input type="hidden" id="solicitudIdActual" value="">
+
+          <div class="input-field">
+            <input type="text" id="nombre">
+            <label for="nombre">Nombre de la clienta</label>
+          </div>
+
+          <label style="color:#616161; font-weight:600; font-size:1rem;">Servicio</label>
+          <div id="containerServicios" class="fila-botones"></div>
+
+          <div class="input-field">
+            <input type="date" id="fechaSolo" onchange="generarBotonesHora()">
+            <label for="fechaSolo" class="active">Fecha</label>
+          </div>
+
+          <label style="color:#616161; font-weight:600; font-size:1rem;">Hora</label>
+          <div id="containerHoras" class="fila-botones"><em class="grey-text">Elige una fecha primero</em></div>
+
+          <label style="color:#616161; font-weight:600; font-size:1rem;">Duración</label>
+          <div class="fila-botones">
+            <button type="button" class="btn-duracion" data-valor="1" onclick="seleccionarDuracion(1, this)">1 Hora</button>
+            <button type="button" class="btn-duracion" data-valor="2" onclick="seleccionarDuracion(2, this)">2 Horas</button>
+            <button type="button" class="btn-duracion" data-valor="3" onclick="seleccionarDuracion(3, this)">3 Horas</button>
+          </div>
+
+          <div class="input-field">
+            <input type="number" id="costo" step="0.01">
+            <label for="costo">Costo ($)</label>
+          </div>
+
+          <label style="color:#616161; font-weight:600; font-size:1rem;">Estado de pago</label>
+          <div class="fila-botones">
+            <button type="button" class="btn-estado pendiente-btn selected" id="btnPendiente" onclick="seleccionarEstadoPago('Pendiente', this)">
+              <i class="material-icons left">hourglass_empty</i>Pendiente
+            </button>
+            <button type="button" class="btn-estado pagado-btn" id="btnPagado" onclick="seleccionarEstadoPago('Pagado', this)">
+              <i class="material-icons left">check_circle</i>Pagado
+            </button>
+          </div>
+
+          <button id="btnGuardar" class="btn waves-effect waves-light teal btn-large" style="margin-top:15px; border-radius:10px; width:100%; font-weight:bold;" onclick="guardarCita()">
+            Guardar Cita <i class="material-icons right">send</i>
+          </button>
+          <button id="btnCancelarEdicion" class="btn waves-effect waves-light grey btn-large oculto" style="margin-top:10px; border-radius:10px; width:100%; font-weight:bold;" onclick="resetFormulario()">
+            Cancelar Edición
+          </button>
+          <p id="mensajeGuardar" style="margin-top:10px; font-weight:600;"></p>
+        </div>
+      </section>
+
+      <!-- LISTA -->
+      <section id="panelLista" class="view-section">
+        <h5 class="teal-text text-darken-2" style="font-weight:bold; margin-top:10px;">Lista de Citas</h5>
+        <div id="containerListaCitas" class="row" style="margin-top:10px;"></div>
+      </section>
+
+      <!-- CONTABILIDAD -->
+      <section id="panelContabilidad" class="view-section">
+        <h5 class="teal-text text-darken-3" style="font-weight:bold; margin-top:10px;">Panel de Contabilidad</h5>
+
+        <div class="filter-panel z-depth-1" style="justify-content:flex-start;">
+          <span style="font-weight:700; color:#424242; font-size:0.95rem;">Período:</span>
+          <select id="filtroPeriodo" class="browser-default" style="width:160px; margin:0;" onchange="offsetPeriodo = 0; renderizarContabilidad();">
+            <option value="diario">Diario</option>
+            <option value="semanal" selected>Semanal</option>
+            <option value="mensual">Mensual</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+
+        <div id="navPeriodo" class="nav-periodo oculto">
+          <button onclick="retrocederPeriodo()" id="btnPeriodoAtras"><i class="material-icons">chevron_left</i></button>
+          <span id="lblPeriodoActual"></span>
+          <button onclick="avanzarPeriodo()" id="btnPeriodoAdelante"><i class="material-icons">chevron_right</i></button>
+        </div>
+
+        <div class="row">
+          <div class="col s12 m7">
+            <div class="resumen-grid">
+              <div class="summary-card">
+                <div class="lbl">Total Ingresos</div>
+                <div class="val" id="totalIngresosVal">$0.00</div>
+              </div>
+              <div class="summary-card">
+                <div class="lbl">Cobrado</div>
+                <div class="val" style="color:#2e7d32;" id="totalPagadoVal">$0.00</div>
+              </div>
+              <div class="summary-card">
+                <div class="lbl">Por Cobrar</div>
+                <div class="val" style="color:#ef6c00;" id="totalPendienteVal">$0.00</div>
+                <button onclick="abrirModalQuienDebe()" class="btn-flat teal-text" style="padding:0; font-size:0.78rem; min-width:auto;">Ver quién debe</button>
+              </div>
+              <div class="summary-card">
+                <div class="lbl">Total Citas</div>
+                <div class="val" style="color:#1565c0;" id="totalCitasVal">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col s12 m5">
+            <div class="top-clients-card">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:2px solid #00897b; padding-bottom:6px;">
+                <span style="font-weight:700; color:#00695c; font-size:1.05rem;">Clientas (por pagos)</span>
+                <i class="material-icons teal-text" style="font-size:1.2rem;">stars</i>
+              </div>
+              <div id="listaTopClientas"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SOLICITUDES -->
+      <section id="panelSolicitudes" class="view-section">
+        <h5 class="teal-text text-darken-2" style="font-weight:bold; margin-top:10px;">Solicitudes Pendientes</h5>
+        <p class="grey-text" style="font-size:0.9rem;">Comparte este enlace con tus clientas:</p>
+        <div class="link-publico-box" id="linkPublicoTexto"></div>
+        <button onclick="copiarLinkPublico()" class="btn-flat teal-text" style="padding:0; margin-bottom:15px;">
+          <i class="material-icons left">content_copy</i>Copiar enlace
+        </button>
+
+        <div id="containerSolicitudes" class="row"></div>
+      </section>
+
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button type="button" class="nav-btn" id="tabLista" onclick="cambiarTab('lista')">
+        <i class="material-icons">list_alt</i><span>Lista</span>
+      </button>
+      <button type="button" class="nav-btn active" id="tabAgendar" onclick="cambiarTab('agendar')">
+        <i class="material-icons">event</i><span>Agendar</span>
+      </button>
+      <button type="button" class="nav-btn" id="tabContabilidad" onclick="cambiarTab('contabilidad')">
+        <i class="material-icons">insert_chart</i><span>Contabilidad</span>
+      </button>
+      <button type="button" class="nav-btn" id="tabSolicitudes" onclick="cambiarTab('solicitudes')" style="position:relative;">
+        <i class="material-icons">inbox</i><span>Solicitudes</span>
+        <span id="badgeSolicitudes" class="badge-alerta oculto"></span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- MODAL QUIEN DEBE -->
+  <div id="modalQuienDebe" class="modal-overlay">
+    <div class="modal-caja">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:10px;">
+        <strong class="teal-text text-darken-2">Clientas con pago pendiente</strong>
+        <button class="btn-flat" style="padding:0; min-width:auto;" onclick="cerrarModalQuienDebe()"><i class="material-icons">close</i></button>
+      </div>
+      <div id="listaQuienDebe"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    let token = null;
+    let slugActual = null;
+    let negocioConfig = null;
+    let serviciosGlobal = [];
+    let citasGlobal = [];
+    let solicitudesGlobal = [];
+    let offsetPeriodo = 0;
+
+    let servicioSeleccionado = null;
+    let horaSeleccionada = null;
+    let duracionSeleccionada = null;
+    let estadoPagoSeleccionado = 'Pendiente';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+    });
+
+    async function hacerLogin() {
+      const slug = document.getElementById('inSlug').value.trim();
+      const pin = document.getElementById('inPin').value.trim();
+
+      const res = await fetch('/.netlify/functions/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, pin })
+      });
+      const data = await res.json();
+
+      if (!data.ok) {
+        document.getElementById('errorLogin').innerText = data.error;
+        return;
+      }
+
+      token = data.token;
+      slugActual = slug;
+      document.getElementById('linkPublicoTexto').innerText =
+        `${window.location.origin}/solicitar.html?negocio=${slugActual}`;
+
+      document.getElementById('vistaLogin').classList.add('oculto');
+      document.getElementById('vistaApp').classList.remove('oculto');
+      await cargarTodo();
+    }
+
+    function cerrarSesionApp() {
+      token = null;
+      document.getElementById('vistaApp').classList.add('oculto');
+      document.getElementById('vistaLogin').classList.remove('oculto');
+      document.getElementById('inPin').value = '';
+    }
+
+    function authHeaders(extra) {
+      return Object.assign({ 'Authorization': 'Bearer ' + token }, extra || {});
+    }
+
+    async function cargarTodo() {
+      const resConfig = await fetch('/.netlify/functions/get-config', { headers: authHeaders() });
+      const dataConfig = await resConfig.json();
+      if (dataConfig.ok) {
+        negocioConfig = dataConfig.config;
+        document.getElementById('nombreNegocio').innerText = negocioConfig.nombre;
+      }
+
+      const resServicios = await fetch('/.netlify/functions/get-servicios', { headers: authHeaders() });
+      const dataServicios = await resServicios.json();
+      if (dataServicios.ok) {
+        serviciosGlobal = dataServicios.servicios;
+        renderizarBotonesServicios();
+      }
+
+      await cargarCitas();
+      await cargarSolicitudes();
+    }
+
+    async function cargarCitas() {
+      const res = await fetch('/.netlify/functions/get-citas', { headers: authHeaders() });
+      const data = await res.json();
+      if (data.ok) {
+        citasGlobal = data.citas;
+        renderizarListaCitas();
+        if (document.getElementById('panelContabilidad').classList.contains('active')) {
+          renderizarContabilidad();
+        }
+      }
+    }
+
+    async function cargarSolicitudes() {
+      const res = await fetch('/.netlify/functions/get-solicitudes', { headers: authHeaders() });
+      const data = await res.json();
+      if (data.ok) {
+        solicitudesGlobal = data.solicitudes;
+        renderizarSolicitudes();
+        actualizarBadgeSolicitudes();
+      }
+    }
+
+    function actualizarBadgeSolicitudes() {
+      const badge = document.getElementById('badgeSolicitudes');
+      const n = solicitudesGlobal.length;
+      if (n > 0) {
+        badge.innerText = n > 9 ? '9+' : n;
+        badge.classList.remove('oculto');
+      } else {
+        badge.classList.add('oculto');
+      }
+    }
+
+    function copiarLinkPublico() {
+      const texto = document.getElementById('linkPublicoTexto').innerText;
+      navigator.clipboard.writeText(texto).then(() => M.toast({ html: 'Enlace copiado', classes: 'green' }))
+        .catch(() => M.toast({ html: 'No se pudo copiar, cópialo manualmente', classes: 'orange' }));
+    }
+
+    function renderizarSolicitudes() {
+      const cont = document.getElementById('containerSolicitudes');
+      if (solicitudesGlobal.length === 0) {
+        cont.innerHTML = '<div class="col s12"><p class="grey-text center-align">No hay solicitudes pendientes.</p></div>';
+        return;
+      }
+      cont.innerHTML = solicitudesGlobal.map(s => {
+        const fecha = new Date(s.fecha_inicio).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const registro = s.fecha_registro ? new Date(s.fecha_registro).toLocaleDateString('es-ES') : '';
+        return `
+          <div class="col s12 m6">
+            <div class="card card-cita white z-depth-1">
+              <div class="card-content">
+                <span class="card-title teal-text text-darken-3" style="font-size:1.2rem; font-weight:700;">${s.nombre}</span>
+                <p><strong>Servicio:</strong> ${s.servicio}</p>
+                <p><strong>Solicita:</strong> ${fecha}</p>
+                <p class="grey-text" style="font-size:0.85rem;">Pedido el ${registro}</p>
+                <div class="card-actions-btn">
+                  <button class="btn waves-effect waves-light green btn-small" style="border-radius:8px;" onclick="aceptarSolicitud(${s.id})"><i class="material-icons left">check</i>Aceptar</button>
+                  <button class="btn waves-effect waves-light red btn-small" style="border-radius:8px;" onclick="cancelarSolicitudClick(${s.id}, '${s.nombre.replace(/'/g,"\\'")}')"><i class="material-icons left">close</i>Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function aceptarSolicitud(id) {
+      const sol = solicitudesGlobal.find(s => s.id === id);
+      if (!sol) return;
+
+      resetFormulario();
+      document.getElementById('solicitudIdActual').value = id;
+      document.getElementById('nombre').value = sol.nombre;
+
+      const d = new Date(sol.fecha_inicio);
+      const pad = n => n < 10 ? '0'+n : n;
+      const fechaStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const horaStr = `${pad(d.getHours())}:00`;
+      document.getElementById('fechaSolo').value = fechaStr;
+      horaSeleccionada = horaStr;
+
+      document.querySelectorAll('#containerServicios .btn-servicio').forEach(b => {
+        if (b.textContent.trim().toLowerCase() === sol.servicio.trim().toLowerCase()) {
+          b.classList.add('selected');
+          servicioSeleccionado = b.textContent.trim();
+          const servObj = serviciosGlobal.find(s => s.nombre === servicioSeleccionado);
+          if (servObj) document.getElementById('costo').value = servObj.precio;
+        }
+      });
+
+      generarBotonesHora();
+
+      document.getElementById('tituloFormulario').innerText = 'Completar solicitud de ' + sol.nombre;
+      document.getElementById('btnGuardar').innerHTML = 'Guardar Cita <i class="material-icons right">send</i>';
+      document.getElementById('btnCancelarEdicion').classList.remove('oculto');
+
+      cambiarTab('agendar');
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+    }
+
+    async function cancelarSolicitudClick(id, nombre) {
+      if (!confirm(`¿Cancelar la solicitud de ${nombre}?`)) return;
+
+      const res = await fetch('/.netlify/functions/cancelar-solicitud', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+
+      if (data.exito) {
+        M.toast({ html: 'Solicitud cancelada', classes: 'green' });
+        await cargarSolicitudes();
+      } else {
+        M.toast({ html: data.mensaje || 'No se pudo cancelar.', classes: 'red' });
+      }
+    }
+
+    function cambiarTab(tab) {
+      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+      document.getElementById('panel' + capitalizar(tab)).classList.add('active');
+      document.getElementById('tab' + capitalizar(tab)).classList.add('active');
+
+      if (tab === 'contabilidad') renderizarContabilidad();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function capitalizar(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    function renderizarBotonesServicios() {
+      const cont = document.getElementById('containerServicios');
+      cont.innerHTML = serviciosGlobal.map(s => `
+        <button type="button" class="btn-servicio" title="${s.descripcion || ''}" onclick="seleccionarServicio('${s.nombre.replace(/'/g, "\\'")}', ${s.precio}, this)">
+          ${s.nombre}
+        </button>
+      `).join('');
+    }
+
+    function seleccionarServicio(nombre, precio, btn) {
+      servicioSeleccionado = nombre;
+      document.getElementById('costo').value = precio;
+      document.querySelectorAll('#containerServicios .btn-servicio').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+    }
+
+    function generarBotonesHora() {
+      const cont = document.getElementById('containerHoras');
+      const fechaStr = document.getElementById('fechaSolo').value;
+      const idEditando = document.getElementById('idEditando').value;
+      const horaPrevia = horaSeleccionada;
+      horaSeleccionada = null;
+
+      if (!fechaStr) {
+        cont.innerHTML = '<em class="grey-text">Elige una fecha primero</em>';
+        return;
+      }
+      if (!negocioConfig) {
+        cont.innerHTML = '<em class="grey-text">Cargando horario...</em>';
+        return;
+      }
+
+      const apertura = parseInt(negocioConfig.horario_apertura.split(':')[0], 10);
+      const cierre = parseInt(negocioConfig.horario_cierre.split(':')[0], 10);
+
+      const citasDia = citasGlobal.filter(c => {
+        if (idEditando && String(c.id) === String(idEditando)) return false;
+        const f = new Date(c.fecha_inicio);
+        const pad = n => n < 10 ? '0'+n : n;
+        return `${f.getFullYear()}-${pad(f.getMonth()+1)}-${pad(f.getDate())}` === fechaStr;
+      });
+
+      let html = '';
+      for (let h = apertura; h < cierre; h++) {
+        const slot = new Date(`${fechaStr}T${h < 10 ? '0'+h : h}:00:00`);
+        let ocupada = false;
+        citasDia.forEach(c => {
+          const ini = new Date(c.fecha_inicio);
+          const fin = new Date(ini.getTime() + Number(c.tiempo) * 3600000);
+          if (slot >= ini && slot < fin) ocupada = true;
+        });
+        const valor = (h < 10 ? '0'+h : h) + ':00';
+        const esLaPrevia = valor === horaPrevia;
+        html += `<button type="button" class="btn-hora ${ocupada && !esLaPrevia ? 'ocupada' : 'disponible'} ${esLaPrevia ? 'selected' : ''}" ${ocupada && !esLaPrevia ? 'disabled' : ''} onclick="seleccionarHora('${valor}', this)">${valor}</button>`;
+      }
+      cont.innerHTML = html;
+      if (horaPrevia) horaSeleccionada = horaPrevia;
+    }
+
+    function seleccionarHora(valor, btn) {
+      horaSeleccionada = valor;
+      document.querySelectorAll('.btn-hora').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    function seleccionarDuracion(horas, btn) {
+      duracionSeleccionada = horas;
+      document.querySelectorAll('.btn-duracion').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      generarBotonesHora();
+    }
+
+    function seleccionarEstadoPago(valor, btn) {
+      estadoPagoSeleccionado = valor;
+      document.getElementById('btnPendiente').classList.remove('selected');
+      document.getElementById('btnPagado').classList.remove('selected');
+      btn.classList.add('selected');
+    }
+
+    function resetFormulario() {
+      document.getElementById('idEditando').value = '';
+      document.getElementById('solicitudIdActual').value = '';
+      document.getElementById('nombre').value = '';
+      document.getElementById('fechaSolo').value = '';
+      document.getElementById('costo').value = '';
+      servicioSeleccionado = null;
+      horaSeleccionada = null;
+      duracionSeleccionada = null;
+      estadoPagoSeleccionado = 'Pendiente';
+
+      document.querySelectorAll('.btn-servicio, .btn-duracion, .btn-hora').forEach(b => b.classList.remove('selected'));
+      document.getElementById('btnPendiente').classList.add('selected');
+      document.getElementById('btnPagado').classList.remove('selected');
+      document.getElementById('containerHoras').innerHTML = '<em class="grey-text">Elige una fecha primero</em>';
+
+      document.getElementById('tituloFormulario').innerText = 'Nueva cita';
+      document.getElementById('btnGuardar').innerHTML = 'Guardar Cita <i class="material-icons right">send</i>';
+      document.getElementById('btnCancelarEdicion').classList.add('oculto');
+      document.getElementById('mensajeGuardar').innerText = '';
+
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+    }
+
+    async function guardarCita() {
+      const idEditando = document.getElementById('idEditando').value;
+      const solicitudId = document.getElementById('solicitudIdActual').value;
+      const nombre = document.getElementById('nombre').value.trim();
+      const fechaStr = document.getElementById('fechaSolo').value;
+      const costo = document.getElementById('costo').value;
+      const mensajeEl = document.getElementById('mensajeGuardar');
+
+      if (!nombre || !servicioSeleccionado || !fechaStr || !horaSeleccionada || !duracionSeleccionada || !costo) {
+        mensajeEl.style.color = '#ef6c00';
+        mensajeEl.innerText = 'Completa todos los campos.';
+        return;
+      }
+
+      const fechaInicio = `${fechaStr}T${horaSeleccionada}:00`;
+      const payload = {
+        nombre, servicio: servicioSeleccionado, fechaInicio,
+        tiempo: duracionSeleccionada, costo, estadoPago: estadoPagoSeleccionado
+      };
+
+      const endpoint = idEditando ? '/.netlify/functions/editar-cita' : '/.netlify/functions/agendar-cita';
+      if (idEditando) payload.id = idEditando;
+      if (!idEditando && solicitudId) payload.solicitudId = solicitudId;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!data.exito) {
+        mensajeEl.style.color = '#c62828';
+        mensajeEl.innerText = data.mensaje;
+        return;
+      }
+
+      mensajeEl.style.color = '#2e7d32';
+      mensajeEl.innerText = idEditando ? '¡Cita actualizada!' : '¡Cita guardada!';
+      resetFormulario();
+      await cargarCitas();
+      if (solicitudId) await cargarSolicitudes();
+    }
+
+    function prepararEdicion(id) {
+      const cita = citasGlobal.find(c => c.id === id);
+      if (!cita) return;
+
+      resetFormulario();
+      document.getElementById('idEditando').value = cita.id;
+      document.getElementById('nombre').value = cita.nombre;
+      document.getElementById('costo').value = cita.costo;
+
+      const d = new Date(cita.fecha_inicio);
+      const pad = n => n < 10 ? '0'+n : n;
+      const fechaStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const horaStr = `${pad(d.getHours())}:00`;
+      document.getElementById('fechaSolo').value = fechaStr;
+
+      servicioSeleccionado = cita.servicio;
+      duracionSeleccionada = Number(cita.tiempo);
+      estadoPagoSeleccionado = cita.estado_pago;
+      horaSeleccionada = horaStr;
+
+      document.querySelectorAll('#containerServicios .btn-servicio').forEach(b => {
+        if (b.textContent.trim() === cita.servicio) b.classList.add('selected');
+      });
+      document.querySelectorAll('.btn-duracion').forEach(b => {
+        if (b.dataset.valor === String(cita.tiempo)) b.classList.add('selected');
+      });
+      document.getElementById('btnPendiente').classList.toggle('selected', cita.estado_pago === 'Pendiente');
+      document.getElementById('btnPagado').classList.toggle('selected', cita.estado_pago === 'Pagado');
+
+      generarBotonesHora();
+
+      document.getElementById('tituloFormulario').innerText = 'Editar cita';
+      document.getElementById('btnGuardar').innerHTML = 'Actualizar Cita <i class="material-icons right">save</i>';
+      document.getElementById('btnCancelarEdicion').classList.remove('oculto');
+
+      cambiarTab('agendar');
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+    }
+
+    async function eliminarCitaClick(id) {
+      if (!confirm('¿Está segura de eliminar esta cita?')) return;
+
+      const res = await fetch('/.netlify/functions/eliminar-cita', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+
+      if (data.exito) {
+        M.toast({ html: 'Cita eliminada', classes: 'green' });
+        await cargarCitas();
+      } else {
+        M.toast({ html: data.mensaje || 'No se pudo eliminar.', classes: 'red' });
+      }
+    }
+
+    async function toggleEstadoPago(id, estadoActual) {
+      const nuevoEstado = estadoActual === 'Pagado' ? 'Pendiente' : 'Pagado';
+      const res = await fetch('/.netlify/functions/cambiar-estado-pago', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ id, nuevoEstado })
+      });
+      const data = await res.json();
+
+      if (data.exito) {
+        M.toast({ html: 'Estado cambiado a ' + nuevoEstado, classes: 'green' });
+        await cargarCitas();
+      } else {
+        M.toast({ html: data.mensaje || 'No se pudo cambiar el estado.', classes: 'red' });
+      }
+    }
+
+    function renderizarListaCitas() {
+      const cont = document.getElementById('containerListaCitas');
+      if (citasGlobal.length === 0) {
+        cont.innerHTML = '<div class="col s12"><p class="grey-text center-align">No hay citas registradas.</p></div>';
+        return;
+      }
+      const ahora = new Date();
+      cont.innerHTML = citasGlobal.map(c => {
+        const fechaObj = new Date(c.fecha_inicio);
+        const esPasada = fechaObj < ahora;
+        const fechaStr = fechaObj.toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const esPagado = c.estado_pago === 'Pagado';
+        return `
+          <div class="col s12 m6">
+            <div class="card card-cita ${esPasada ? 'card-pasada' : 'white'} z-depth-1">
+              <div class="card-content">
+                <span class="card-title teal-text text-darken-3" style="font-size:1.2rem; font-weight:700;">${c.nombre}</span>
+                <p><strong>Servicio:</strong> ${c.servicio}</p>
+                <p><strong>Fecha/Hora:</strong> ${fechaStr}</p>
+                <p><strong>Duración:</strong> ${c.tiempo} hora(s)</p>
+                <p><strong>Costo:</strong> $${c.costo}</p>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                  <span class="status-badge ${esPagado ? 'pagado' : 'pendiente'}" onclick="toggleEstadoPago(${c.id}, '${c.estado_pago}')">
+                    <i class="material-icons">${esPagado ? 'check_circle' : 'hourglass_empty'}</i>${c.estado_pago}
+                  </span>
+                  <div class="card-actions-btn">
+                    <button class="btn-floating btn-small waves-effect waves-light blue lighten-1" onclick="prepararEdicion(${c.id})"><i class="material-icons">edit</i></button>
+                    <button class="btn-floating btn-small waves-effect waves-light red lighten-1" onclick="eliminarCitaClick(${c.id})"><i class="material-icons">delete</i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ================== CONTABILIDAD ================== */
+
+    function obtenerNumeroSemanaISO(fecha) {
+      const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
+      const diaNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - diaNum);
+      const inicioAnio = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      return Math.ceil((((d - inicioAnio) / 86400000) + 1) / 7);
+    }
+
+    const NOMBRES_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    function calcularRangoPeriodo(periodo, offset) {
+      const ahora = new Date();
+
+      if (periodo === 'semanal') {
+        const diaSemana = ahora.getDay();
+        const diasHastaLunes = (diaSemana === 0) ? 6 : diaSemana - 1;
+        const inicioSemanaActual = new Date(ahora);
+        inicioSemanaActual.setDate(ahora.getDate() - diasHastaLunes);
+        inicioSemanaActual.setHours(0, 0, 0, 0);
+
+        const inicio = new Date(inicioSemanaActual);
+        inicio.setDate(inicio.getDate() - (offset * 7));
+        const fin = new Date(inicio);
+        fin.setDate(inicio.getDate() + 7);
+
+        const numSemana = obtenerNumeroSemanaISO(inicio);
+        return { inicio, fin, etiqueta: `Semana ${numSemana}, ${inicio.getFullYear()}` };
+      }
+
+      if (periodo === 'mensual') {
+        const mesBase = ahora.getMonth() - offset;
+        const inicio = new Date(ahora.getFullYear(), mesBase, 1);
+        const fin = new Date(ahora.getFullYear(), mesBase + 1, 1);
+        return { inicio, fin, etiqueta: `${NOMBRES_MESES[inicio.getMonth()]} ${inicio.getFullYear()}` };
+      }
+
+      return { inicio: null, fin: null, etiqueta: '' };
+    }
+
+    function hayRegistrosAntesDe(fechaLimite) {
+      return citasGlobal.some(c => c.fecha_inicio && new Date(c.fecha_inicio) < fechaLimite);
+    }
+
+    function retrocederPeriodo() { offsetPeriodo++; renderizarContabilidad(); }
+    function avanzarPeriodo() { if (offsetPeriodo > 0) { offsetPeriodo--; renderizarContabilidad(); } }
+
+    function actualizarNavPeriodo(periodo, rango) {
+      const nav = document.getElementById('navPeriodo');
+      if (periodo !== 'semanal' && periodo !== 'mensual') { nav.classList.add('oculto'); return; }
+      nav.classList.remove('oculto');
+      document.getElementById('lblPeriodoActual').innerText = rango.etiqueta;
+      document.getElementById('btnPeriodoAtras').disabled = !hayRegistrosAntesDe(rango.inicio);
+      document.getElementById('btnPeriodoAdelante').disabled = (offsetPeriodo === 0);
+    }
+
+    function filtrarCitasPorPeriodo(periodo) {
+      const ahora = new Date();
+      if (periodo === 'semanal' || periodo === 'mensual') {
+        const rango = calcularRangoPeriodo(periodo, offsetPeriodo);
+        actualizarNavPeriodo(periodo, rango);
+        return citasGlobal.filter(c => {
+          const f = new Date(c.fecha_inicio);
+          return f >= rango.inicio && f < rango.fin;
+        });
+      }
+      actualizarNavPeriodo(periodo, {});
+      return citasGlobal.filter(c => {
+        const f = new Date(c.fecha_inicio);
+        if (periodo === 'diario') return f.getDate() === ahora.getDate() && f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear();
+        if (periodo === 'anual') return f.getFullYear() === ahora.getFullYear();
+        return true;
+      });
+    }
+
+    function renderizarContabilidad() {
+      const periodo = document.getElementById('filtroPeriodo').value;
+      const citasFiltradas = filtrarCitasPorPeriodo(periodo);
+
+      let totalIngresos = 0, totalPagado = 0, totalPendiente = 0;
+      const clientesMap = {};
+
+      citasFiltradas.forEach(c => {
+        const costo = Number(c.costo) || 0;
+        totalIngresos += costo;
+        if (c.estado_pago === 'Pagado') {
+          totalPagado += costo;
+          const nombre = (c.nombre || '').trim();
+          if (nombre) clientesMap[nombre] = (clientesMap[nombre] || 0) + costo;
+        } else {
+          totalPendiente += costo;
+        }
+      });
+
+      document.getElementById('totalIngresosVal').innerText = '$' + totalIngresos.toFixed(2);
+      document.getElementById('totalPagadoVal').innerText = '$' + totalPagado.toFixed(2);
+      document.getElementById('totalPendienteVal').innerText = '$' + totalPendiente.toFixed(2);
+      document.getElementById('totalCitasVal').innerText = citasFiltradas.length;
+
+      const topLista = Object.keys(clientesMap).map(nombre => ({ nombre, total: clientesMap[nombre] })).sort((a,b) => b.total - a.total);
+      const divTop = document.getElementById('listaTopClientas');
+      if (topLista.length === 0) {
+        divTop.innerHTML = '<p class="grey-text center-align" style="font-size:0.9rem; margin-top:15px;">Sin pagos registrados en este período.</p>';
+      } else {
+        divTop.innerHTML = topLista.map((c, i) => `
+          <div class="top-cliente-item">
+            <span>${i+1}. ${c.nombre}</span>
+            <strong style="color:#00695c;">$${c.total.toFixed(2)}</strong>
+          </div>
+        `).join('');
+      }
+    }
+
+    function abrirModalQuienDebe() {
+      const periodo = document.getElementById('filtroPeriodo').value;
+      const citasFiltradas = filtrarCitasPorPeriodo(periodo).filter(c => c.estado_pago !== 'Pagado');
+      citasFiltradas.sort((a,b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio));
+
+      const cont = document.getElementById('listaQuienDebe');
+      if (citasFiltradas.length === 0) {
+        cont.innerHTML = '<p class="grey-text center-align" style="padding:20px 0;">No hay pagos pendientes en este período. 🎉</p>';
+      } else {
+        cont.innerHTML = citasFiltradas.map(c => {
+          const fechaStr = new Date(c.fecha_inicio).toLocaleDateString('es-ES');
+          return `<div class="top-cliente-item"><span>${c.nombre} — ${c.servicio} (${fechaStr})</span><strong style="color:#ef6c00;">$${Number(c.costo).toFixed(2)}</strong></div>`;
+        }).join('');
+      }
+      document.getElementById('modalQuienDebe').classList.add('activo');
+    }
+
+    function cerrarModalQuienDebe() {
+      document.getElementById('modalQuienDebe').classList.remove('activo');
+    }
+  </script>
 </body>
 </html>
