@@ -11,7 +11,9 @@ export default async (req) => {
 
   try {
     const solicitudes = await sql`
-      SELECT id, nombre_cliente AS nombre, servicio, fecha_inicio, fecha_registro
+      SELECT id, nombre_cliente AS nombre, servicio,
+            to_char(fecha_inicio, 'YYYY-MM-DD"T"HH24:MI:SS') AS fecha_inicio,
+            fecha_registro
       FROM solicitudes
       WHERE negocio_id = ${sesion.negocio_id}
       ORDER BY fecha_registro DESC

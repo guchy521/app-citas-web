@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -9,6 +10,7 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="/estilos.css">
 </head>
+
 <body>
 
   <!-- LOGIN -->
@@ -28,7 +30,8 @@
         <label for="inPin">PIN</label>
       </div>
 
-      <button class="btn waves-effect waves-light teal btn-large" style="width:100%; border-radius:10px;" onclick="hacerLogin()">
+      <button class="btn waves-effect waves-light teal btn-large" style="width:100%; border-radius:10px;"
+        onclick="hacerLogin()">
         Ingresar <i class="material-icons right">login</i>
       </button>
       <p id="errorLogin" style="color:#c62828; text-align:center; margin-top:12px; font-size:0.9rem;"></p>
@@ -55,13 +58,15 @@
       <!-- AGENDAR -->
       <section id="panelAgendar" class="view-section active">
         <div class="card-panel-app z-depth-1">
-          <h5 id="tituloFormulario" class="teal-text text-darken-2" style="margin-top:0; font-weight:bold;">Nueva cita</h5>
+          <h5 id="tituloFormulario" class="teal-text text-darken-2" style="margin-top:0; font-weight:bold;">Nueva cita
+          </h5>
           <input type="hidden" id="idEditando" value="">
           <input type="hidden" id="solicitudIdActual" value="">
 
           <div class="input-field">
-            <input type="text" id="nombre">
+            <input type="text" id="nombre" list="listaNombresClientas" autocomplete="off">
             <label for="nombre">Nombre de la clienta</label>
+            <datalist id="listaNombresClientas"></datalist>
           </div>
 
           <label style="color:#616161; font-weight:600; font-size:1rem;">Servicio</label>
@@ -77,9 +82,12 @@
 
           <label style="color:#616161; font-weight:600; font-size:1rem;">Duración</label>
           <div class="fila-botones">
-            <button type="button" class="btn-duracion" data-valor="1" onclick="seleccionarDuracion(1, this)">1 Hora</button>
-            <button type="button" class="btn-duracion" data-valor="2" onclick="seleccionarDuracion(2, this)">2 Horas</button>
-            <button type="button" class="btn-duracion" data-valor="3" onclick="seleccionarDuracion(3, this)">3 Horas</button>
+            <button type="button" class="btn-duracion" data-valor="1" onclick="seleccionarDuracion(1, this)">1
+              Hora</button>
+            <button type="button" class="btn-duracion" data-valor="2" onclick="seleccionarDuracion(2, this)">2
+              Horas</button>
+            <button type="button" class="btn-duracion" data-valor="3" onclick="seleccionarDuracion(3, this)">3
+              Horas</button>
           </div>
 
           <div class="input-field">
@@ -89,18 +97,22 @@
 
           <label style="color:#616161; font-weight:600; font-size:1rem;">Estado de pago</label>
           <div class="fila-botones">
-            <button type="button" class="btn-estado pendiente-btn selected" id="btnPendiente" onclick="seleccionarEstadoPago('Pendiente', this)">
+            <button type="button" class="btn-estado pendiente-btn selected" id="btnPendiente"
+              onclick="seleccionarEstadoPago('Pendiente', this)">
               <i class="material-icons left">hourglass_empty</i>Pendiente
             </button>
-            <button type="button" class="btn-estado pagado-btn" id="btnPagado" onclick="seleccionarEstadoPago('Pagado', this)">
+            <button type="button" class="btn-estado pagado-btn" id="btnPagado"
+              onclick="seleccionarEstadoPago('Pagado', this)">
               <i class="material-icons left">check_circle</i>Pagado
             </button>
           </div>
 
-          <button id="btnGuardar" class="btn waves-effect waves-light teal btn-large" style="margin-top:15px; border-radius:10px; width:100%; font-weight:bold;" onclick="guardarCita()">
+          <button id="btnGuardar" class="btn waves-effect waves-light teal btn-large"
+            style="margin-top:15px; border-radius:10px; width:100%; font-weight:bold;" onclick="guardarCita()">
             Guardar Cita <i class="material-icons right">send</i>
           </button>
-          <button id="btnCancelarEdicion" class="btn waves-effect waves-light grey btn-large oculto" style="margin-top:10px; border-radius:10px; width:100%; font-weight:bold;" onclick="resetFormulario()">
+          <button id="btnCancelarEdicion" class="btn waves-effect waves-light grey btn-large oculto"
+            style="margin-top:10px; border-radius:10px; width:100%; font-weight:bold;" onclick="resetFormulario()">
             Cancelar Edición
           </button>
           <p id="mensajeGuardar" style="margin-top:10px; font-weight:600;"></p>
@@ -110,6 +122,34 @@
       <!-- LISTA -->
       <section id="panelLista" class="view-section">
         <h5 class="teal-text text-darken-2" style="font-weight:bold; margin-top:10px;">Lista de Citas</h5>
+
+        <div class="input-field white z-depth-1" style="border-radius:10px; padding:0 12px; margin-top:12px;">
+          <i class="material-icons prefix" style="font-size:1.6rem; margin-top:8px;">search</i>
+          <input type="text" id="buscarCita" oninput="renderizarListaCitas()"
+            placeholder="Buscar clienta, servicio o fecha...">
+        </div>
+
+        <div class="filter-panel z-depth-1">
+          <label>
+            <input type="checkbox" id="checkInactivas" class="filled-in"
+              onchange="seleccionarFiltroUnico('checkInactivas')" />
+            <span>Inactivas</span>
+          </label>
+          <label>
+            <input type="checkbox" id="checkHoy" class="filled-in" onchange="seleccionarFiltroUnico('checkHoy')" />
+            <span>Hoy</span>
+          </label>
+          <label>
+            <input type="checkbox" id="checkSemana" class="filled-in"
+              onchange="seleccionarFiltroUnico('checkSemana')" />
+            <span>Esta Semana</span>
+          </label>
+          <label>
+            <input type="checkbox" id="checkMes" class="filled-in" onchange="seleccionarFiltroUnico('checkMes')" />
+            <span>Este Mes</span>
+          </label>
+        </div>
+
         <div id="containerListaCitas" class="row" style="margin-top:10px;"></div>
       </section>
 
@@ -119,7 +159,8 @@
 
         <div class="filter-panel z-depth-1" style="justify-content:flex-start;">
           <span style="font-weight:700; color:#424242; font-size:0.95rem;">Período:</span>
-          <select id="filtroPeriodo" class="browser-default" style="width:160px; margin:0;" onchange="offsetPeriodo = 0; renderizarContabilidad();">
+          <select id="filtroPeriodo" class="browser-default" style="width:160px; margin:0;"
+            onchange="offsetPeriodo = 0; renderizarContabilidad();">
             <option value="diario">Diario</option>
             <option value="semanal" selected>Semanal</option>
             <option value="mensual">Mensual</option>
@@ -130,7 +171,8 @@
         <div id="navPeriodo" class="nav-periodo oculto">
           <button onclick="retrocederPeriodo()" id="btnPeriodoAtras"><i class="material-icons">chevron_left</i></button>
           <span id="lblPeriodoActual"></span>
-          <button onclick="avanzarPeriodo()" id="btnPeriodoAdelante"><i class="material-icons">chevron_right</i></button>
+          <button onclick="avanzarPeriodo()" id="btnPeriodoAdelante"><i
+              class="material-icons">chevron_right</i></button>
         </div>
 
         <div class="row">
@@ -147,7 +189,8 @@
               <div class="summary-card">
                 <div class="lbl">Por Cobrar</div>
                 <div class="val" style="color:#ef6c00;" id="totalPendienteVal">$0.00</div>
-                <button onclick="abrirModalQuienDebe()" class="btn-flat teal-text" style="padding:0; font-size:0.78rem; min-width:auto;">Ver quién debe</button>
+                <button onclick="abrirModalQuienDebe()" class="btn-flat teal-text"
+                  style="padding:0; font-size:0.78rem; min-width:auto;">Ver quién debe</button>
               </div>
               <div class="summary-card">
                 <div class="lbl">Total Citas</div>
@@ -157,7 +200,8 @@
           </div>
           <div class="col s12 m5">
             <div class="top-clients-card">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:2px solid #00897b; padding-bottom:6px;">
+              <div
+                style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:2px solid #00897b; padding-bottom:6px;">
                 <span style="font-weight:700; color:#00695c; font-size:1.05rem;">Clientas (por pagos)</span>
                 <i class="material-icons teal-text" style="font-size:1.2rem;">stars</i>
               </div>
@@ -192,7 +236,8 @@
       <button type="button" class="nav-btn" id="tabContabilidad" onclick="cambiarTab('contabilidad')">
         <i class="material-icons">insert_chart</i><span>Contabilidad</span>
       </button>
-      <button type="button" class="nav-btn" id="tabSolicitudes" onclick="cambiarTab('solicitudes')" style="position:relative;">
+      <button type="button" class="nav-btn" id="tabSolicitudes" onclick="cambiarTab('solicitudes')"
+        style="position:relative;">
         <i class="material-icons">inbox</i><span>Solicitudes</span>
         <span id="badgeSolicitudes" class="badge-alerta oculto"></span>
       </button>
@@ -202,9 +247,11 @@
   <!-- MODAL QUIEN DEBE -->
   <div id="modalQuienDebe" class="modal-overlay">
     <div class="modal-caja">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:10px;">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:10px;">
         <strong class="teal-text text-darken-2">Clientas con pago pendiente</strong>
-        <button class="btn-flat" style="padding:0; min-width:auto;" onclick="cerrarModalQuienDebe()"><i class="material-icons">close</i></button>
+        <button class="btn-flat" style="padding:0; min-width:auto;" onclick="cerrarModalQuienDebe()"><i
+            class="material-icons">close</i></button>
       </div>
       <div id="listaQuienDebe"></div>
     </div>
@@ -225,8 +272,12 @@
     let duracionSeleccionada = null;
     let estadoPagoSeleccionado = 'Pendiente';
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+
+      document.getElementById('inPin').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') hacerLogin();
+      });
     });
 
     async function hacerLogin() {
@@ -290,6 +341,7 @@
       const data = await res.json();
       if (data.ok) {
         citasGlobal = data.citas;
+        actualizarListaNombres();
         renderizarListaCitas();
         if (document.getElementById('panelContabilidad').classList.contains('active')) {
           renderizarContabilidad();
@@ -331,7 +383,7 @@
         return;
       }
       cont.innerHTML = solicitudesGlobal.map(s => {
-        const fecha = new Date(s.fecha_inicio).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const fecha = new Date(s.fecha_inicio).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         const registro = s.fecha_registro ? new Date(s.fecha_registro).toLocaleDateString('es-ES') : '';
         return `
           <div class="col s12 m6">
@@ -343,7 +395,7 @@
                 <p class="grey-text" style="font-size:0.85rem;">Pedido el ${registro}</p>
                 <div class="card-actions-btn">
                   <button class="btn waves-effect waves-light green btn-small" style="border-radius:8px;" onclick="aceptarSolicitud(${s.id})"><i class="material-icons left">check</i>Aceptar</button>
-                  <button class="btn waves-effect waves-light red btn-small" style="border-radius:8px;" onclick="cancelarSolicitudClick(${s.id}, '${s.nombre.replace(/'/g,"\\'")}')"><i class="material-icons left">close</i>Cancelar</button>
+                  <button class="btn waves-effect waves-light red btn-small" style="border-radius:8px;" onclick="cancelarSolicitudClick(${s.id}, '${s.nombre.replace(/'/g, "\\'")}')"><i class="material-icons left">close</i>Cancelar</button>
                 </div>
               </div>
             </div>
@@ -361,8 +413,8 @@
       document.getElementById('nombre').value = sol.nombre;
 
       const d = new Date(sol.fecha_inicio);
-      const pad = n => n < 10 ? '0'+n : n;
-      const fechaStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const pad = n => n < 10 ? '0' + n : n;
+      const fechaStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
       const horaStr = `${pad(d.getHours())}:00`;
       document.getElementById('fechaSolo').value = fechaStr;
       horaSeleccionada = horaStr;
@@ -456,20 +508,20 @@
       const citasDia = citasGlobal.filter(c => {
         if (idEditando && String(c.id) === String(idEditando)) return false;
         const f = new Date(c.fecha_inicio);
-        const pad = n => n < 10 ? '0'+n : n;
-        return `${f.getFullYear()}-${pad(f.getMonth()+1)}-${pad(f.getDate())}` === fechaStr;
+        const pad = n => n < 10 ? '0' + n : n;
+        return `${f.getFullYear()}-${pad(f.getMonth() + 1)}-${pad(f.getDate())}` === fechaStr;
       });
 
       let html = '';
       for (let h = apertura; h < cierre; h++) {
-        const slot = new Date(`${fechaStr}T${h < 10 ? '0'+h : h}:00:00`);
+        const slot = new Date(`${fechaStr}T${h < 10 ? '0' + h : h}:00:00`);
         let ocupada = false;
         citasDia.forEach(c => {
           const ini = new Date(c.fecha_inicio);
           const fin = new Date(ini.getTime() + Number(c.tiempo) * 3600000);
           if (slot >= ini && slot < fin) ocupada = true;
         });
-        const valor = (h < 10 ? '0'+h : h) + ':00';
+        const valor = (h < 10 ? '0' + h : h) + ':00';
         const esLaPrevia = valor === horaPrevia;
         html += `<button type="button" class="btn-hora ${ocupada && !esLaPrevia ? 'ocupada' : 'disponible'} ${esLaPrevia ? 'selected' : ''}" ${ocupada && !esLaPrevia ? 'disabled' : ''} onclick="seleccionarHora('${valor}', this)">${valor}</button>`;
       }
@@ -575,8 +627,8 @@
       document.getElementById('costo').value = cita.costo;
 
       const d = new Date(cita.fecha_inicio);
-      const pad = n => n < 10 ? '0'+n : n;
-      const fechaStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const pad = n => n < 10 ? '0' + n : n;
+      const fechaStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
       const horaStr = `${pad(d.getHours())}:00`;
       document.getElementById('fechaSolo').value = fechaStr;
 
@@ -639,40 +691,96 @@
       }
     }
 
+    function seleccionarFiltroUnico(idSeleccionado) {
+      const checks = ['checkInactivas', 'checkHoy', 'checkSemana', 'checkMes'];
+      const actual = document.getElementById(idSeleccionado);
+      if (actual.checked) {
+        checks.forEach(id => { if (id !== idSeleccionado) document.getElementById(id).checked = false; });
+      }
+      renderizarListaCitas();
+    }
+
     function renderizarListaCitas() {
       const cont = document.getElementById('containerListaCitas');
-      if (citasGlobal.length === 0) {
-        cont.innerHTML = '<div class="col s12"><p class="grey-text center-align">No hay citas registradas.</p></div>';
+
+      const checkInactivas = document.getElementById('checkInactivas').checked;
+      const checkHoy = document.getElementById('checkHoy').checked;
+      const checkSemana = document.getElementById('checkSemana').checked;
+      const checkMes = document.getElementById('checkMes').checked;
+      const termino = (document.getElementById('buscarCita').value || '').toLowerCase().trim();
+
+      const ahora = new Date();
+
+      let citasFiltradas = citasGlobal.filter(c => {
+        if (!c.fecha_inicio) return false;
+        const fecha = new Date(c.fecha_inicio);
+
+        if (checkInactivas) {
+          if (fecha >= ahora) return false;
+        } else {
+          if (!checkHoy && !checkSemana && !checkMes && fecha < ahora) return false;
+        }
+
+        if (checkHoy) {
+          const esMismoDia = fecha.getDate() === ahora.getDate() && fecha.getMonth() === ahora.getMonth() && fecha.getFullYear() === ahora.getFullYear();
+          if (!esMismoDia) return false;
+        }
+
+        if (checkSemana) {
+          const inicioSemana = new Date(ahora);
+          const diaSemana = ahora.getDay();
+          const diasHastaLunes = (diaSemana === 0) ? 6 : diaSemana - 1;
+          inicioSemana.setDate(ahora.getDate() - diasHastaLunes);
+          inicioSemana.setHours(0, 0, 0, 0);
+          const finSemana = new Date(inicioSemana);
+          finSemana.setDate(inicioSemana.getDate() + 7);
+          if (fecha < inicioSemana || fecha >= finSemana) return false;
+        }
+
+        if (checkMes) {
+          if (fecha.getMonth() !== ahora.getMonth() || fecha.getFullYear() !== ahora.getFullYear()) return false;
+        }
+
+        if (termino) {
+          const texto = `${c.nombre} ${c.servicio} ${c.fecha_inicio}`.toLowerCase();
+          if (!texto.includes(termino)) return false;
+        }
+
+        return true;
+      });
+
+      if (citasFiltradas.length === 0) {
+        cont.innerHTML = '<div class="col s12"><p class="grey-text center-align">No hay citas que coincidan con los criterios.</p></div>';
         return;
       }
-      const ahora = new Date();
-      cont.innerHTML = citasGlobal.map(c => {
+
+      cont.innerHTML = citasFiltradas.map(c => {
         const fechaObj = new Date(c.fecha_inicio);
         const esPasada = fechaObj < ahora;
-        const fechaStr = fechaObj.toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const fechaStr = fechaObj.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         const esPagado = c.estado_pago === 'Pagado';
         return `
-          <div class="col s12 m6">
-            <div class="card card-cita ${esPasada ? 'card-pasada' : 'white'} z-depth-1">
-              <div class="card-content">
-                <span class="card-title teal-text text-darken-3" style="font-size:1.2rem; font-weight:700;">${c.nombre}</span>
-                <p><strong>Servicio:</strong> ${c.servicio}</p>
-                <p><strong>Fecha/Hora:</strong> ${fechaStr}</p>
-                <p><strong>Duración:</strong> ${c.tiempo} hora(s)</p>
-                <p><strong>Costo:</strong> $${c.costo}</p>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-                  <span class="status-badge ${esPagado ? 'pagado' : 'pendiente'}" onclick="toggleEstadoPago(${c.id}, '${c.estado_pago}')">
-                    <i class="material-icons">${esPagado ? 'check_circle' : 'hourglass_empty'}</i>${c.estado_pago}
-                  </span>
-                  <div class="card-actions-btn">
-                    <button class="btn-floating btn-small waves-effect waves-light blue lighten-1" onclick="prepararEdicion(${c.id})"><i class="material-icons">edit</i></button>
-                    <button class="btn-floating btn-small waves-effect waves-light red lighten-1" onclick="eliminarCitaClick(${c.id})"><i class="material-icons">delete</i></button>
-                  </div>
-                </div>
+      <div class="col s12 m6">
+        <div class="card card-cita ${esPasada ? 'card-pasada' : 'white'} z-depth-1">
+          <div class="card-content">
+            <span class="card-title teal-text text-darken-3" style="font-size:1.2rem; font-weight:700;">${c.nombre}</span>
+            <p><strong>Servicio:</strong> ${c.servicio}</p>
+            <p><strong>Fecha/Hora:</strong> ${fechaStr}</p>
+            <p><strong>Duración:</strong> ${c.tiempo} hora(s)</p>
+            <p><strong>Costo:</strong> $${c.costo}</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+              <span class="status-badge ${esPagado ? 'pagado' : 'pendiente'}" onclick="toggleEstadoPago(${c.id}, '${c.estado_pago}')">
+                <i class="material-icons">${esPagado ? 'check_circle' : 'hourglass_empty'}</i>${c.estado_pago}
+              </span>
+              <div class="card-actions-btn">
+                <button class="btn-floating btn-small waves-effect waves-light blue lighten-1" onclick="prepararEdicion(${c.id})"><i class="material-icons">edit</i></button>
+                <button class="btn-floating btn-small waves-effect waves-light red lighten-1" onclick="eliminarCitaClick(${c.id})"><i class="material-icons">delete</i></button>
               </div>
             </div>
           </div>
-        `;
+        </div>
+      </div>
+    `;
       }).join('');
     }
 
@@ -686,7 +794,7 @@
       return Math.ceil((((d - inicioAnio) / 86400000) + 1) / 7);
     }
 
-    const NOMBRES_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
     function calcularRangoPeriodo(periodo, offset) {
       const ahora = new Date();
@@ -776,14 +884,14 @@
       document.getElementById('totalPendienteVal').innerText = '$' + totalPendiente.toFixed(2);
       document.getElementById('totalCitasVal').innerText = citasFiltradas.length;
 
-      const topLista = Object.keys(clientesMap).map(nombre => ({ nombre, total: clientesMap[nombre] })).sort((a,b) => b.total - a.total);
+      const topLista = Object.keys(clientesMap).map(nombre => ({ nombre, total: clientesMap[nombre] })).sort((a, b) => b.total - a.total);
       const divTop = document.getElementById('listaTopClientas');
       if (topLista.length === 0) {
         divTop.innerHTML = '<p class="grey-text center-align" style="font-size:0.9rem; margin-top:15px;">Sin pagos registrados en este período.</p>';
       } else {
         divTop.innerHTML = topLista.map((c, i) => `
           <div class="top-cliente-item">
-            <span>${i+1}. ${c.nombre}</span>
+            <span>${i + 1}. ${c.nombre}</span>
             <strong style="color:#00695c;">$${c.total.toFixed(2)}</strong>
           </div>
         `).join('');
@@ -793,7 +901,7 @@
     function abrirModalQuienDebe() {
       const periodo = document.getElementById('filtroPeriodo').value;
       const citasFiltradas = filtrarCitasPorPeriodo(periodo).filter(c => c.estado_pago !== 'Pagado');
-      citasFiltradas.sort((a,b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio));
+      citasFiltradas.sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio));
 
       const cont = document.getElementById('listaQuienDebe');
       if (citasFiltradas.length === 0) {
@@ -810,6 +918,16 @@
     function cerrarModalQuienDebe() {
       document.getElementById('modalQuienDebe').classList.remove('activo');
     }
+
+    function actualizarListaNombres() {
+      const datalist = document.getElementById('listaNombresClientas');
+      const nombresUnicos = [...new Set(
+        citasGlobal.map(c => (c.nombre || '').trim()).filter(n => n !== '')
+      )].sort((a, b) => a.localeCompare(b, 'es'));
+
+      datalist.innerHTML = nombresUnicos.map(n => `<option value="${n.replace(/"/g, '&quot;')}"></option>`).join('');
+    }
   </script>
 </body>
+
 </html>

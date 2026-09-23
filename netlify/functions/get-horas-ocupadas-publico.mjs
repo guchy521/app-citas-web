@@ -21,16 +21,16 @@ export default async (req) => {
     // Cruza citas YA agendadas + solicitudes pendientes, para que dos
     // clientas no pidan el mismo horario antes de que el dueño revise.
     const citas = await sql`
-      SELECT fecha_inicio, tiempo_horas AS tiempo
-      FROM citas
-      WHERE negocio_id = ${negocioId} AND fecha_inicio BETWEEN ${inicioDia} AND ${finDia}
-    `;
+  SELECT to_char(fecha_inicio, 'YYYY-MM-DD"T"HH24:MI:SS') AS fecha_inicio, tiempo_horas AS tiempo
+  FROM citas
+  WHERE negocio_id = ${negocioId} AND fecha_inicio BETWEEN ${inicioDia} AND ${finDia}
+`;
 
     const solicitudes = await sql`
-      SELECT fecha_inicio
-      FROM solicitudes
-      WHERE negocio_id = ${negocioId} AND fecha_inicio BETWEEN ${inicioDia} AND ${finDia}
-    `;
+  SELECT to_char(fecha_inicio, 'YYYY-MM-DD"T"HH24:MI:SS') AS fecha_inicio
+  FROM solicitudes
+  WHERE negocio_id = ${negocioId} AND fecha_inicio BETWEEN ${inicioDia} AND ${finDia}
+`;
 
     const ocupadas = [
       ...citas.map(c => ({ fechaInicio: c.fecha_inicio, tiempo: Number(c.tiempo) || 1 })),
