@@ -154,3 +154,23 @@ body {
   .nav-btn { font-size: 0.9rem; }
   .nav-btn i { font-size: 1.8rem; }
 }
+
+.sugerencias-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: #fff; border: 1px solid #ddd; border-radius: 8px;
+  max-height: 180px; overflow-y: auto; z-index: 50;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.sugerencias-dropdown .sugerencia-item {
+  padding: 10px 14px; cursor: pointer; font-size: 0.95rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.sugerencias-dropdown .sugerencia-item:last-child { border-bottom: none; }
+.sugerencias-dropdown .sugerencia-item:active { background: #e0f2f1; }
+
+.loading-overlay {
+  display: none; position: fixed; top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.55); z-index: 4000; align-items:center; justify-content:center;
+  flex-direction: column; color: #fff;
+}
+.loading-overlay.active { display: flex; }

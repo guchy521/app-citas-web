@@ -2,8 +2,8 @@
 <html lang="es">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>App Citas & Contabilidad</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
@@ -12,6 +12,23 @@
 </head>
 
 <body>
+
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="preloader-wrapper big active">
+      <div class="spinner-layer spinner-white-only">
+        <div class="circle-clipper left">
+          <div class="circle"></div>
+        </div>
+        <div class="gap-patch">
+          <div class="circle"></div>
+        </div>
+        <div class="circle-clipper right">
+          <div class="circle"></div>
+        </div>
+      </div>
+    </div>
+    <p id="loadingText" style="margin-top:15px; font-weight:600;">Procesando...</p>
+  </div>
 
   <!-- LOGIN -->
   <div id="vistaLogin" class="container" style="max-width:380px; margin-top:70px;">
@@ -63,10 +80,11 @@
           <input type="hidden" id="idEditando" value="">
           <input type="hidden" id="solicitudIdActual" value="">
 
-          <div class="input-field">
-            <input type="text" id="nombre" list="listaNombresClientas" autocomplete="off">
+          <div class="input-field" style="position:relative;">
+            <input type="text" id="nombre" autocomplete="off" oninput="filtrarSugerenciasNombre()"
+              onfocus="filtrarSugerenciasNombre()">
             <label for="nombre">Nombre de la clienta</label>
-            <datalist id="listaNombresClientas"></datalist>
+            <div id="sugerenciasNombre" class="sugerencias-dropdown oculto"></div>
           </div>
 
           <label style="color:#616161; font-weight:600; font-size:1rem;">Servicio</label>
@@ -114,8 +132,7 @@
           <button id="btnCancelarEdicion" class="btn waves-effect waves-light grey btn-large oculto"
             style="margin-top:10px; border-radius:10px; width:100%; font-weight:bold;" onclick="resetFormulario()">
             Cancelar Edición
-          </button>
-          <p id="mensajeGuardar" style="margin-top:10px; font-weight:600;"></p>
+          </button>          
         </div>
       </section>
 
@@ -284,26 +301,33 @@
       const slug = document.getElementById('inSlug').value.trim();
       const pin = document.getElementById('inPin').value.trim();
 
-      const res = await fetch('/.netlify/functions/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, pin })
-      });
-      const data = await res.json();
+      mostrarCargando('Ingresando...');
+      try {
+        const res = await fetch('/.netlify/functions/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, pin })
+        });
+        const data = await res.json();
+        ocultarCargando();
 
-      if (!data.ok) {
-        document.getElementById('errorLogin').innerText = data.error;
-        return;
+        if (!data.ok) {
+          document.getElementById('errorLogin').innerText = data.error;
+          return;
+        }
+
+        token = data.token;
+        slugActual = slug;
+        document.getElementById('linkPublicoTexto').innerText =
+          `${window.location.origin}/solicitar.html?negocio=${slugActual}`;
+
+        document.getElementById('vistaLogin').classList.add('oculto');
+        document.getElementById('vistaApp').classList.remove('oculto');
+        await cargarTodo();
+      } catch (err) {
+        ocultarCargando();
+        document.getElementById('errorLogin').innerText = 'Error de conexión. Verifica tu internet.';
       }
-
-      token = data.token;
-      slugActual = slug;
-      document.getElementById('linkPublicoTexto').innerText =
-        `${window.location.origin}/solicitar.html?negocio=${slugActual}`;
-
-      document.getElementById('vistaLogin').classList.add('oculto');
-      document.getElementById('vistaApp').classList.remove('oculto');
-      await cargarTodo();
     }
 
     function cerrarSesionApp() {
@@ -341,7 +365,7 @@
       const data = await res.json();
       if (data.ok) {
         citasGlobal = data.citas;
-        actualizarListaNombres();
+
         renderizarListaCitas();
         if (document.getElementById('panelContabilidad').classList.contains('active')) {
           renderizarContabilidad();
@@ -567,8 +591,7 @@
 
       document.getElementById('tituloFormulario').innerText = 'Nueva cita';
       document.getElementById('btnGuardar').innerHTML = 'Guardar Cita <i class="material-icons right">send</i>';
-      document.getElementById('btnCancelarEdicion').classList.add('oculto');
-      document.getElementById('mensajeGuardar').innerText = '';
+      document.getElementById('btnCancelarEdicion').classList.add('oculto');      
 
       if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
     }
@@ -579,11 +602,9 @@
       const nombre = document.getElementById('nombre').value.trim();
       const fechaStr = document.getElementById('fechaSolo').value;
       const costo = document.getElementById('costo').value;
-      const mensajeEl = document.getElementById('mensajeGuardar');
 
       if (!nombre || !servicioSeleccionado || !fechaStr || !horaSeleccionada || !duracionSeleccionada || !costo) {
-        mensajeEl.style.color = '#ef6c00';
-        mensajeEl.innerText = 'Completa todos los campos.';
+        M.toast({ html: 'Completa todos los campos.', classes: 'orange' });
         return;
       }
 
@@ -597,24 +618,30 @@
       if (idEditando) payload.id = idEditando;
       if (!idEditando && solicitudId) payload.solicitudId = solicitudId;
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
+      mostrarCargando(idEditando ? 'Actualizando cita...' : 'Guardando cita...');
 
-      if (!data.exito) {
-        mensajeEl.style.color = '#c62828';
-        mensajeEl.innerText = data.mensaje;
-        return;
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        ocultarCargando();
+
+        if (!data.exito) {
+          M.toast({ html: data.mensaje, classes: 'red' });
+          return;
+        }
+
+        M.toast({ html: idEditando ? '¡Cita actualizada!' : '¡Cita guardada!', classes: 'green' });
+        resetFormulario();
+        await cargarCitas();
+        if (solicitudId) await cargarSolicitudes();
+      } catch (err) {
+        ocultarCargando();
+        M.toast({ html: 'Error de conexión. Verifica tu internet e intenta de nuevo.', classes: 'red' });
       }
-
-      mensajeEl.style.color = '#2e7d32';
-      mensajeEl.innerText = idEditando ? '¡Cita actualizada!' : '¡Cita guardada!';
-      resetFormulario();
-      await cargarCitas();
-      if (solicitudId) await cargarSolicitudes();
     }
 
     function prepararEdicion(id) {
@@ -658,36 +685,47 @@
 
     async function eliminarCitaClick(id) {
       if (!confirm('¿Está segura de eliminar esta cita?')) return;
-
-      const res = await fetch('/.netlify/functions/eliminar-cita', {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ id })
-      });
-      const data = await res.json();
-
-      if (data.exito) {
-        M.toast({ html: 'Cita eliminada', classes: 'green' });
-        await cargarCitas();
-      } else {
-        M.toast({ html: data.mensaje || 'No se pudo eliminar.', classes: 'red' });
+      mostrarCargando('Eliminando cita...');
+      try {
+        const res = await fetch('/.netlify/functions/eliminar-cita', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        ocultarCargando();
+        if (data.exito) {
+          M.toast({ html: 'Cita eliminada', classes: 'green' });
+          await cargarCitas();
+        } else {
+          M.toast({ html: data.mensaje || 'No se pudo eliminar.', classes: 'red' });
+        }
+      } catch (err) {
+        ocultarCargando();
+        M.toast({ html: 'Error de conexión.', classes: 'red' });
       }
     }
 
     async function toggleEstadoPago(id, estadoActual) {
       const nuevoEstado = estadoActual === 'Pagado' ? 'Pendiente' : 'Pagado';
-      const res = await fetch('/.netlify/functions/cambiar-estado-pago', {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ id, nuevoEstado })
-      });
-      const data = await res.json();
-
-      if (data.exito) {
-        M.toast({ html: 'Estado cambiado a ' + nuevoEstado, classes: 'green' });
-        await cargarCitas();
-      } else {
-        M.toast({ html: data.mensaje || 'No se pudo cambiar el estado.', classes: 'red' });
+      mostrarCargando('Actualizando estado...');
+      try {
+        const res = await fetch('/.netlify/functions/cambiar-estado-pago', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ id, nuevoEstado })
+        });
+        const data = await res.json();
+        ocultarCargando();
+        if (data.exito) {
+          M.toast({ html: 'Estado cambiado a ' + nuevoEstado, classes: 'green' });
+          await cargarCitas();
+        } else {
+          M.toast({ html: data.mensaje || 'No se pudo cambiar el estado.', classes: 'red' });
+        }
+      } catch (err) {
+        ocultarCargando();
+        M.toast({ html: 'Error de conexión.', classes: 'red' });
       }
     }
 
@@ -919,13 +957,40 @@
       document.getElementById('modalQuienDebe').classList.remove('activo');
     }
 
-    function actualizarListaNombres() {
-      const datalist = document.getElementById('listaNombresClientas');
-      const nombresUnicos = [...new Set(
-        citasGlobal.map(c => (c.nombre || '').trim()).filter(n => n !== '')
-      )].sort((a, b) => a.localeCompare(b, 'es'));
+    function filtrarSugerenciasNombre() {
+      const input = document.getElementById('nombre');
+      const cont = document.getElementById('sugerenciasNombre');
+      const termino = input.value.trim().toLowerCase();
 
-      datalist.innerHTML = nombresUnicos.map(n => `<option value="${n.replace(/"/g, '&quot;')}"></option>`).join('');
+      const nombresUnicos = [...new Set(citasGlobal.map(c => (c.nombre || '').trim()).filter(n => n !== ''))];
+
+      if (!termino) { cont.classList.add('oculto'); cont.innerHTML = ''; return; }
+
+      const coincidencias = nombresUnicos.filter(n => n.toLowerCase().includes(termino)).slice(0, 8);
+
+      if (coincidencias.length === 0) { cont.classList.add('oculto'); cont.innerHTML = ''; return; }
+
+      cont.innerHTML = coincidencias.map(n => `<div class="sugerencia-item" onclick="seleccionarSugerenciaNombre('${n.replace(/'/g, "\\'")}')">${n}</div>`).join('');
+      cont.classList.remove('oculto');
+    }
+
+    function seleccionarSugerenciaNombre(nombre) {
+      document.getElementById('nombre').value = nombre;
+      document.getElementById('sugerenciasNombre').classList.add('oculto');
+    }
+
+    document.addEventListener('click', function (e) {
+      const cont = document.getElementById('sugerenciasNombre');
+      if (cont && e.target.id !== 'nombre' && !e.target.closest('#sugerenciasNombre')) {
+        cont.classList.add('oculto');
+      }
+    });
+    function mostrarCargando(texto) {
+      document.getElementById('loadingText').innerText = texto || 'Procesando...';
+      document.getElementById('loadingOverlay').classList.add('active');
+    }
+    function ocultarCargando() {
+      document.getElementById('loadingOverlay').classList.remove('active');
     }
   </script>
 </body>
