@@ -1,4 +1,4 @@
-import { sql, obtenerNegocioIdPorSlug } from "./utils/negocio.mjs";
+import { sql } from "./utils/negocio.mjs";
 
 export default async (req) => {
   try {
@@ -17,14 +17,17 @@ export default async (req) => {
       return new Response(JSON.stringify({ exito: false, mensaje: "Ingresa tu nombre completo." }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
-    const negocioId = await obtenerNegocioIdPorSlug(negocio);
-    if (!negocioId) {
+    const [fila] = await sql`SELECT id, solicitudes_activas FROM negocios WHERE slug = ${negocio}`;
+    if (!fila) {
       return new Response(JSON.stringify({ exito: false, mensaje: "Negocio no encontrado." }), { status: 404, headers: { "Content-Type": "application/json" } });
+    }
+    if (fila.solicitudes_activas === false) {
+      return new Response(JSON.stringify({ exito: false, mensaje: "Este negocio no está aceptando solicitudes en línea por ahora." }), { status: 403, headers: { "Content-Type": "application/json" } });
     }
 
     await sql`
       INSERT INTO solicitudes (negocio_id, nombre_cliente, servicio, fecha_inicio)
-      VALUES (${negocioId}, ${nombreLimpio}, ${servicio}, ${fechaInicio})
+      VALUES (${fila.id}, ${nombreLimpio}, ${servicio}, ${fechaInicio})
     `;
 
     return new Response(JSON.stringify({ exito: true }), { status: 200, headers: { "Content-Type": "application/json" } });

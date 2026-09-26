@@ -151,6 +151,12 @@
       configNegocio = dataCfg.config;
       document.getElementById('tituloNegocio').innerText = configNegocio.nombre;
 
+      if (configNegocio.solicitudes_activas === false) {
+        document.querySelector('.contenedor-publico').innerHTML =
+          '<div class="card-panel-app z-depth-1 center-align"><i class="material-icons" style="font-size:3rem; color:#9e9e9e;">event_busy</i><p class="grey-text" style="margin-top:10px;">Este negocio no está aceptando solicitudes en línea en este momento. Por favor contáctalo directamente.</p></div>';
+        return;
+      }
+
       const hoy = new Date();
       const pad = n => n < 10 ? '0' + n : n;
       document.getElementById('fechaSolo').min = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;

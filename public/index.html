@@ -65,6 +65,9 @@
         <span class="brand-title" id="nombreNegocio">Negocio</span>
       </div>
       <div class="header-acciones">
+        <button type="button" class="btn-flat" onclick="cambiarTab('configuracion')" title="Configuración">
+          <i class="material-icons">settings</i>
+        </button>
         <button type="button" class="btn-flat" onclick="cerrarSesionApp()" title="Cerrar sesión">
           <i class="material-icons">logout</i>
         </button>
@@ -242,6 +245,65 @@
         <div id="containerSolicitudes" class="row"></div>
       </section>
 
+      <!-- SCONFIGURACION -->
+      <section id="panelConfiguracion" class="view-section">
+        <div class="card-panel-app z-depth-1">
+          <h5 class="teal-text text-darken-2" style="font-weight:bold; margin-top:0;">Configuración del negocio</h5>
+
+          <div class="input-field">
+            <input type="text" id="cfgNombre">
+            <label for="cfgNombre" class="active">Nombre del negocio</label>
+          </div>
+
+          <div class="input-field">
+            <input type="text" id="cfgWhatsapp" placeholder="Ej: 18091234567">
+            <label for="cfgWhatsapp">WhatsApp (solo números, con código de país)</label>
+          </div>
+
+          <div class="row" style="margin-bottom:0;">
+            <div class="input-field col s6">
+              <input type="time" id="cfgHorarioApertura">
+              <label for="cfgHorarioApertura" class="active">Hora de apertura</label>
+            </div>
+            <div class="input-field col s6">
+              <input type="time" id="cfgHorarioCierre">
+              <label for="cfgHorarioCierre" class="active">Hora de cierre</label>
+            </div>
+          </div>
+
+          <label style="color:#616161; font-weight:600; font-size:1rem; display:block; margin-top:10px;">Color de la
+            aplicación</label>
+          <div style="display:flex; align-items:center; gap:12px; margin:8px 0 20px;">
+            <input type="color" id="cfgColor" value="#00897b"
+              style="width:50px; height:40px; border:none; cursor:pointer;">
+            <span class="grey-text" style="font-size:0.85rem;">Se usa en botones, encabezado y menú.</span>
+          </div>
+
+          <div
+            style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid #eee; border-bottom:1px solid #eee; margin-bottom:20px;">
+            <div style="max-width:75%;">
+              <div style="font-weight:600; color:#424242;">Recibir solicitudes en línea</div>
+              <div class="grey-text" style="font-size:0.82rem;">Si lo apagas, se oculta la pestaña de Solicitudes y tus
+                clientas ya no podrán pedir citas por el formulario público.</div>
+            </div>
+            <div class="switch">
+              <label>
+                Off
+                <input type="checkbox" id="cfgSolicitudesActivas">
+                <span class="lever"></span>
+                On
+              </label>
+            </div>
+          </div>
+
+          <button class="btn waves-effect waves-light teal btn-large" style="width:100%; border-radius:10px;"
+            onclick="guardarConfiguracion()">
+            Guardar Cambios <i class="material-icons right">save</i>
+          </button>
+          <p id="mensajeConfig" style="margin-top:10px; font-weight:600;"></p>
+        </div>
+      </section>
+
     </div>
 
     <!-- BOTTOM NAV -->
@@ -346,9 +408,12 @@
     async function cargarTodo() {
       const resConfig = await fetch('/.netlify/functions/get-config', { headers: authHeaders() });
       const dataConfig = await resConfig.json();
+      
       if (dataConfig.ok) {
         negocioConfig = dataConfig.config;
         document.getElementById('nombreNegocio').innerText = negocioConfig.nombre;
+        aplicarColorNegocio(negocioConfig.color_primario);
+        actualizarVisibilidadSolicitudes(negocioConfig.solicitudes_activas);
       }
 
       const resServicios = await fetch('/.netlify/functions/get-servicios', { headers: authHeaders() });
@@ -487,9 +552,11 @@
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
       document.getElementById('panel' + capitalizar(tab)).classList.add('active');
-      document.getElementById('tab' + capitalizar(tab)).classList.add('active');
+      const navBtn = document.getElementById('tab' + capitalizar(tab));
+      if (navBtn) navBtn.classList.add('active');
 
       if (tab === 'contabilidad') renderizarContabilidad();
+      if (tab === 'configuracion') abrirConfiguracion();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1055,6 +1122,81 @@
     }
     function ocultarCargando() {
       document.getElementById('loadingOverlay').classList.remove('active');
+    }
+    function shadeColor(hex, percent) {
+      let f = parseInt(hex.slice(1), 16), t = percent < 0 ? 0 : 255, p = percent < 0 ? percent * -1 : percent;
+      let R = f >> 16, G = f >> 8 & 0x00FF, B = f & 0x0000FF;
+      return "#" + (0x1000000 + (Math.round((t - R) * p) + R) * 0x10000 +
+        (Math.round((t - G) * p) + G) * 0x100 +
+        (Math.round((t - B) * p) + B)).toString(16).slice(1);
+    }
+
+    function aplicarColorNegocio(color) {
+      const primario = color || '#00897b';
+      const oscuro = shadeColor(primario, -0.15);
+      document.documentElement.style.setProperty('--primary', primario);
+      document.documentElement.style.setProperty('--primary-dark', oscuro);
+    }
+
+    function actualizarVisibilidadSolicitudes(activas) {
+      const tab = document.getElementById('tabSolicitudes');
+      if (!tab) return;
+      tab.style.display = activas === false ? 'none' : 'flex';
+    }
+
+    function abrirConfiguracion() {
+      document.getElementById('cfgNombre').value = negocioConfig.nombre || '';
+      document.getElementById('cfgWhatsapp').value = negocioConfig.whatsapp || '';
+      document.getElementById('cfgHorarioApertura').value = negocioConfig.horario_apertura || '';
+      document.getElementById('cfgHorarioCierre').value = negocioConfig.horario_cierre || '';
+      document.getElementById('cfgColor').value = negocioConfig.color_primario || '#00897b';
+      document.getElementById('cfgSolicitudesActivas').checked = negocioConfig.solicitudes_activas !== false;
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+    }
+
+    async function guardarConfiguracion() {
+      const nombre = document.getElementById('cfgNombre').value.trim();
+      const whatsapp = document.getElementById('cfgWhatsapp').value.trim();
+      const horarioApertura = document.getElementById('cfgHorarioApertura').value;
+      const horarioCierre = document.getElementById('cfgHorarioCierre').value;
+      const colorPrimario = document.getElementById('cfgColor').value;
+      const solicitudesActivas = document.getElementById('cfgSolicitudesActivas').checked;
+
+      if (!nombre || !horarioApertura || !horarioCierre) {
+        M.toast({ html: 'Completa nombre y horario.', classes: 'orange' });
+        return;
+      }
+
+      mostrarCargando('Guardando configuración...');
+      try {
+        const res = await fetch('/.netlify/functions/actualizar-configuracion', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ nombre, whatsapp, horarioApertura, horarioCierre, colorPrimario, solicitudesActivas })
+        });
+        const data = await res.json();
+        ocultarCargando();
+
+        if (!data.exito) {
+          M.toast({ html: data.mensaje, classes: 'red' });
+          return;
+        }
+
+        M.toast({ html: 'Configuración guardada', classes: 'green' });
+        negocioConfig.nombre = nombre;
+        negocioConfig.whatsapp = whatsapp;
+        negocioConfig.horario_apertura = horarioApertura;
+        negocioConfig.horario_cierre = horarioCierre;
+        negocioConfig.color_primario = colorPrimario;
+        negocioConfig.solicitudes_activas = solicitudesActivas;
+
+        document.getElementById('nombreNegocio').innerText = nombre;
+        aplicarColorNegocio(colorPrimario);
+        actualizarVisibilidadSolicitudes(solicitudesActivas);
+      } catch (err) {
+        ocultarCargando();
+        M.toast({ html: 'Error de conexión.', classes: 'red' });
+      }
     }
   </script>
 </body>

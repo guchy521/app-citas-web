@@ -9,7 +9,7 @@ export default async (req) => {
     }
 
     const [negocio] = await sql`
-      SELECT nombre, horario_apertura, horario_cierre, dias_max_anticipacion
+      SELECT nombre, horario_apertura, horario_cierre, dias_max_anticipacion, solicitudes_activas
       FROM negocios WHERE slug = ${slug}
     `;
 
