@@ -1,0 +1,2 @@
+ALTER TABLE negocios ADD COLUMN IF NOT EXISTS color_primario TEXT DEFAULT '#00897b';
+ALTER TABLE negocios ADD COLUMN IF NOT EXISTS solicitudes_activas BOOLEAN DEFAULT true;
