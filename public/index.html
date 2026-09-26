@@ -295,7 +295,12 @@
               </label>
             </div>
           </div>
-
+          <div style="margin-top:10px; padding-top:15px; border-top:1px solid #eee;">
+            <button type="button" class="btn waves-effect waves-light blue lighten-1"
+              style="width:100%; border-radius:10px;" onclick="abrirGestionServicios()">
+              <i class="material-icons left">design_services</i>Gestionar Servicios
+            </button>
+          </div>
           <button class="btn waves-effect waves-light teal btn-large" style="width:100%; border-radius:10px;"
             onclick="guardarConfiguracion()">
             Guardar Cambios <i class="material-icons right">save</i>
@@ -303,7 +308,51 @@
           <p id="mensajeConfig" style="margin-top:10px; font-weight:600;"></p>
         </div>
       </section>
+      <!-- SERVICIOS -->
+      <section id="panelServicios" class="view-section">
+        <div class="card-panel-app z-depth-1">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <button type="button" class="btn-flat" style="padding:0; min-width:auto;"
+              onclick="cambiarTab('configuracion')">
+              <i class="material-icons">arrow_back</i>
+            </button>
+            <h5 class="teal-text text-darken-2" style="font-weight:bold; margin:0;">Servicios</h5>
+          </div>
 
+          <h6 id="tituloFormServicio" style="font-weight:bold; color:#424242;">Nuevo servicio</h6>
+          <input type="hidden" id="servicioIdEditando" value="">
+
+          <div class="input-field">
+            <input type="text" id="servNombre">
+            <label for="servNombre">Nombre del servicio</label>
+          </div>
+          <div class="row" style="margin-bottom:0;">
+            <div class="input-field col s6">
+              <input type="number" id="servPrecio" step="0.01">
+              <label for="servPrecio">Precio ($)</label>
+            </div>
+            <div class="input-field col s6">
+              <input type="number" id="servDuracion" step="0.5">
+              <label for="servDuracion">Duración (horas)</label>
+            </div>
+          </div>
+          <div class="input-field">
+            <input type="text" id="servDescripcion">
+            <label for="servDescripcion">Descripción (opcional)</label>
+          </div>
+
+          <button class="btn waves-effect waves-light teal" style="border-radius:10px;" onclick="guardarServicio()"
+            id="btnGuardarServicio">
+            Guardar Servicio <i class="material-icons right">save</i>
+          </button>
+          <button class="btn waves-effect waves-light grey oculto" style="border-radius:10px; margin-left:8px;"
+            onclick="cancelarEdicionServicio()" id="btnCancelarServicio">
+            Cancelar
+          </button>
+        </div>
+
+        <div id="containerListaServiciosAdmin" style="margin-top:10px;"></div>
+      </section>
     </div>
 
     <!-- BOTTOM NAV -->
@@ -408,7 +457,7 @@
     async function cargarTodo() {
       const resConfig = await fetch('/.netlify/functions/get-config', { headers: authHeaders() });
       const dataConfig = await resConfig.json();
-      
+
       if (dataConfig.ok) {
         negocioConfig = dataConfig.config;
         document.getElementById('nombreNegocio').innerText = negocioConfig.nombre;
@@ -1197,6 +1246,156 @@
         ocultarCargando();
         M.toast({ html: 'Error de conexión.', classes: 'red' });
       }
+    }
+
+    let serviciosAdminGlobal = [];
+
+    function abrirGestionServicios() {
+      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+      document.getElementById('panelServicios').classList.add('active');
+      cancelarEdicionServicio();
+      cargarServiciosAdmin();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function cargarServiciosAdmin() {
+      const res = await fetch('/.netlify/functions/get-servicios-admin', { headers: authHeaders() });
+      const data = await res.json();
+      if (data.ok) {
+        serviciosAdminGlobal = data.servicios;
+        renderizarListaServiciosAdmin();
+      }
+    }
+
+    function renderizarListaServiciosAdmin() {
+      const cont = document.getElementById('containerListaServiciosAdmin');
+      if (serviciosAdminGlobal.length === 0) {
+        cont.innerHTML = '<p class="grey-text center-align">Aún no tienes servicios agregados.</p>';
+        return;
+      }
+      cont.innerHTML = serviciosAdminGlobal.map(s => `
+    <div class="card card-cita ${s.activo ? 'white' : 'card-pasada'} z-depth-1">
+      <div class="card-content">
+        <span class="card-title teal-text text-darken-3" style="font-size:1.1rem; font-weight:700;">${s.nombre}</span>
+        <p><strong>Precio:</strong> $${s.precio} · <strong>Duración:</strong> ${s.duracion_horas}h</p>
+        ${s.descripcion ? `<p class="grey-text">${s.descripcion}</p>` : ''}
+        <div class="card-actions-btn">
+          <button class="btn-floating btn-small waves-effect waves-light blue lighten-1" onclick="prepararEdicionServicio(${s.id})"><i class="material-icons">edit</i></button>
+          <button class="btn-floating btn-small waves-effect waves-light ${s.activo ? 'orange' : 'green'}" onclick="toggleActivoServicio(${s.id}, ${s.activo})"><i class="material-icons">${s.activo ? 'visibility_off' : 'visibility'}</i></button>
+          <button class="btn-floating btn-small waves-effect waves-light red lighten-1" onclick="eliminarServicioClick(${s.id})"><i class="material-icons">delete</i></button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+    }
+
+    function cancelarEdicionServicio() {
+      document.getElementById('servicioIdEditando').value = '';
+      document.getElementById('servNombre').value = '';
+      document.getElementById('servPrecio').value = '';
+      document.getElementById('servDuracion').value = '';
+      document.getElementById('servDescripcion').value = '';
+      document.getElementById('tituloFormServicio').innerText = 'Nuevo servicio';
+      document.getElementById('btnGuardarServicio').innerHTML = 'Guardar Servicio <i class="material-icons right">save</i>';
+      document.getElementById('btnCancelarServicio').classList.add('oculto');
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+    }
+
+    function prepararEdicionServicio(id) {
+      const s = serviciosAdminGlobal.find(x => x.id === id);
+      if (!s) return;
+      document.getElementById('servicioIdEditando').value = s.id;
+      document.getElementById('servNombre').value = s.nombre;
+      document.getElementById('servPrecio').value = s.precio;
+      document.getElementById('servDuracion').value = s.duracion_horas;
+      document.getElementById('servDescripcion').value = s.descripcion || '';
+      document.getElementById('tituloFormServicio').innerText = 'Editar servicio';
+      document.getElementById('btnGuardarServicio').innerHTML = 'Actualizar Servicio <i class="material-icons right">save</i>';
+      document.getElementById('btnCancelarServicio').classList.remove('oculto');
+      if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function refrescarServiciosActivos() {
+      const res = await fetch('/.netlify/functions/get-servicios', { headers: authHeaders() });
+      const data = await res.json();
+      if (data.ok) {
+        serviciosGlobal = data.servicios;
+        renderizarBotonesServicios();
+      }
+    }
+
+    async function guardarServicio() {
+      const id = document.getElementById('servicioIdEditando').value;
+      const nombre = document.getElementById('servNombre').value.trim();
+      const precio = document.getElementById('servPrecio').value;
+      const duracion = document.getElementById('servDuracion').value;
+      const descripcion = document.getElementById('servDescripcion').value.trim();
+
+      if (!nombre || !precio || !duracion) {
+        M.toast({ html: 'Completa nombre, precio y duración.', classes: 'orange' });
+        return;
+      }
+
+      const endpoint = id ? '/.netlify/functions/editar-servicio' : '/.netlify/functions/crear-servicio';
+      const payload = { nombre, precio, duracionHoras: duracion, descripcion };
+      if (id) payload.id = id;
+
+      mostrarCargando(id ? 'Actualizando servicio...' : 'Guardando servicio...');
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        ocultarCargando();
+        if (!data.exito) { M.toast({ html: data.mensaje, classes: 'red' }); return; }
+        M.toast({ html: id ? 'Servicio actualizado' : 'Servicio agregado', classes: 'green' });
+        cancelarEdicionServicio();
+        await cargarServiciosAdmin();
+        await refrescarServiciosActivos();
+      } catch (err) {
+        ocultarCargando();
+        M.toast({ html: 'Error de conexión.', classes: 'red' });
+      }
+    }
+
+    async function toggleActivoServicio(id, activoActual) {
+      mostrarCargando('Actualizando...');
+      try {
+        const res = await fetch('/.netlify/functions/cambiar-estado-servicio', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ id, activo: !activoActual })
+        });
+        const data = await res.json();
+        ocultarCargando();
+        if (data.exito) {
+          M.toast({ html: !activoActual ? 'Servicio activado' : 'Servicio desactivado', classes: 'green' });
+          await cargarServiciosAdmin();
+          await refrescarServiciosActivos();
+        } else { M.toast({ html: data.mensaje, classes: 'red' }); }
+      } catch (err) { ocultarCargando(); M.toast({ html: 'Error de conexión.', classes: 'red' }); }
+    }
+
+    async function eliminarServicioClick(id) {
+      if (!confirm('¿Eliminar este servicio? Las citas ya creadas con este servicio no se verán afectadas.')) return;
+      mostrarCargando('Eliminando...');
+      try {
+        const res = await fetch('/.netlify/functions/eliminar-servicio', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        ocultarCargando();
+        if (data.exito) {
+          M.toast({ html: 'Servicio eliminado', classes: 'green' });
+          await cargarServiciosAdmin();
+          await refrescarServiciosActivos();
+        } else { M.toast({ html: data.mensaje, classes: 'red' }); }
+      } catch (err) { ocultarCargando(); M.toast({ html: 'Error de conexión.', classes: 'red' }); }
     }
   </script>
 </body>
