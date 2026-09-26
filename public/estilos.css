@@ -7,7 +7,7 @@
 body {
   background-color: var(--bg-app);
   padding-top: 65px;
-  padding-bottom: 100px;
+  padding-bottom: 85px;
   font-size: 17px;
   -webkit-tap-highlight-color: transparent;
 }
@@ -125,19 +125,16 @@ body {
 }
 
 .bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  height: 80px;
-  background: #fff; border-top: 1px solid #e0e0e0;
-  display: flex; align-items: flex-start; justify-content: space-around;
-  padding-top: 8px;
+  position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: #fff;
+  border-top: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-around;
   z-index: 999; box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
 }
 .nav-btn {
   background: none; border: none; color: #757575; display: flex; flex-direction: column;
-  align-items: center; justify-content: flex-start; font-size: 0.78rem; width: 25%;
-  cursor: pointer; font-weight: 600; position: relative; line-height: 1.2; gap: 4px;
+  align-items: center; justify-content: center; font-size: 0.8rem; width: 25%; height: 100%;
+  cursor: pointer; font-weight: 600; position: relative;
 }
-.nav-btn i { font-size: 1.7rem; }
+.nav-btn i { font-size: 1.6rem; margin-bottom: 2px; }
 .nav-btn.active { color: var(--primary); font-weight: 700; }
 
 .badge-alerta {
