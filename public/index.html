@@ -2,8 +2,9 @@
 <html lang="es">
 
 <head>
-  <meta charset="UTF-8"> 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>App Citas & Contabilidad</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
@@ -132,7 +133,7 @@
           <button id="btnCancelarEdicion" class="btn waves-effect waves-light grey btn-large oculto"
             style="margin-top:10px; border-radius:10px; width:100%; font-weight:bold;" onclick="resetFormulario()">
             Cancelar Edición
-          </button>          
+          </button>
         </div>
       </section>
 
@@ -176,6 +177,7 @@
 
         <div class="filter-panel z-depth-1" style="justify-content:flex-start;">
           <span style="font-weight:700; color:#424242; font-size:0.95rem;">Período:</span>
+          <div id="resumenTextoContable" class="resumen-texto"></div>
           <select id="filtroPeriodo" class="browser-default" style="width:160px; margin:0;"
             onchange="offsetPeriodo = 0; renderizarContabilidad();">
             <option value="diario">Diario</option>
@@ -591,7 +593,7 @@
 
       document.getElementById('tituloFormulario').innerText = 'Nueva cita';
       document.getElementById('btnGuardar').innerHTML = 'Guardar Cita <i class="material-icons right">send</i>';
-      document.getElementById('btnCancelarEdicion').classList.add('oculto');      
+      document.getElementById('btnCancelarEdicion').classList.add('oculto');
 
       if (typeof M !== 'undefined' && M.updateTextFields) M.updateTextFields();
     }
@@ -898,11 +900,30 @@
       });
     }
 
+    function generarResumenTexto(periodo, totales, rango) {
+      const { totalIngresos, totalPagado, totalPendiente, totalCitas, citasPendientesCount } = totales;
+
+      let etiquetaPeriodo;
+      if (periodo === 'diario') etiquetaPeriodo = 'Hoy';
+      else if (periodo === 'anual') etiquetaPeriodo = 'Este año';
+      else etiquetaPeriodo = (rango && rango.etiqueta) ? rango.etiqueta : (periodo === 'semanal' ? 'Esta semana' : 'Este mes');
+
+      if (totalCitas === 0) {
+        return `${etiquetaPeriodo} no hay citas registradas todavía.`;
+      }
+
+      if (totalPendiente === 0) {
+        return `${etiquetaPeriodo} generaste $${totalIngresos.toFixed(2)} y ya está todo cobrado. 🎉`;
+      }
+
+      return `${etiquetaPeriodo} generaste $${totalIngresos.toFixed(2)} en total — ya cobraste $${totalPagado.toFixed(2)} y te faltan $${totalPendiente.toFixed(2)} por cobrar de ${citasPendientesCount} cita${citasPendientesCount === 1 ? '' : 's'}. Cuando te paguen, márcalas como pagadas en "Ver quién debe".`;
+    }
+
     function renderizarContabilidad() {
       const periodo = document.getElementById('filtroPeriodo').value;
       const citasFiltradas = filtrarCitasPorPeriodo(periodo);
 
-      let totalIngresos = 0, totalPagado = 0, totalPendiente = 0;
+      let totalIngresos = 0, totalPagado = 0, totalPendiente = 0, citasPendientesCount = 0;
       const clientesMap = {};
 
       citasFiltradas.forEach(c => {
@@ -914,6 +935,7 @@
           if (nombre) clientesMap[nombre] = (clientesMap[nombre] || 0) + costo;
         } else {
           totalPendiente += costo;
+          citasPendientesCount++;
         }
       });
 
@@ -922,17 +944,24 @@
       document.getElementById('totalPendienteVal').innerText = '$' + totalPendiente.toFixed(2);
       document.getElementById('totalCitasVal').innerText = citasFiltradas.length;
 
+      const rango = (periodo === 'semanal' || periodo === 'mensual') ? calcularRangoPeriodo(periodo, offsetPeriodo) : null;
+      document.getElementById('resumenTextoContable').innerText = generarResumenTexto(
+        periodo,
+        { totalIngresos, totalPagado, totalPendiente, totalCitas: citasFiltradas.length, citasPendientesCount },
+        rango
+      );
+
       const topLista = Object.keys(clientesMap).map(nombre => ({ nombre, total: clientesMap[nombre] })).sort((a, b) => b.total - a.total);
       const divTop = document.getElementById('listaTopClientas');
       if (topLista.length === 0) {
         divTop.innerHTML = '<p class="grey-text center-align" style="font-size:0.9rem; margin-top:15px;">Sin pagos registrados en este período.</p>';
       } else {
         divTop.innerHTML = topLista.map((c, i) => `
-          <div class="top-cliente-item">
-            <span>${i + 1}. ${c.nombre}</span>
-            <strong style="color:#00695c;">$${c.total.toFixed(2)}</strong>
-          </div>
-        `).join('');
+      <div class="top-cliente-item">
+        <span>${i + 1}. ${c.nombre}</span>
+        <strong style="color:#00695c;">$${c.total.toFixed(2)}</strong>
+      </div>
+    `).join('');
       }
     }
 
@@ -947,10 +976,45 @@
       } else {
         cont.innerHTML = citasFiltradas.map(c => {
           const fechaStr = new Date(c.fecha_inicio).toLocaleDateString('es-ES');
-          return `<div class="top-cliente-item"><span>${c.nombre} — ${c.servicio} (${fechaStr})</span><strong style="color:#ef6c00;">$${Number(c.costo).toFixed(2)}</strong></div>`;
+          return `
+        <div class="quien-debe-fila">
+          <div class="quien-debe-info">
+            <div>${c.nombre} — ${c.servicio} (${fechaStr})</div>
+            <strong style="color:#ef6c00;">$${Number(c.costo).toFixed(2)}</strong>
+          </div>
+          <button type="button" class="btn-marcar-pagado" onclick="marcarPagoDesdeModal(${c.id}, '${c.estado_pago}')">
+            Marcar pagado
+          </button>
+        </div>
+      `;
         }).join('');
       }
       document.getElementById('modalQuienDebe').classList.add('activo');
+    }
+
+    async function marcarPagoDesdeModal(id, estadoActual) {
+      const nuevoEstado = estadoActual === 'Pagado' ? 'Pendiente' : 'Pagado';
+      mostrarCargando('Actualizando estado...');
+      try {
+        const res = await fetch('/.netlify/functions/cambiar-estado-pago', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ id, nuevoEstado })
+        });
+        const data = await res.json();
+        ocultarCargando();
+
+        if (data.exito) {
+          M.toast({ html: 'Marcado como ' + nuevoEstado, classes: 'green' });
+          await cargarCitas();
+          abrirModalQuienDebe(); // recalcula y vuelve a pintar el modal ya abierto, con la fila actualizada
+        } else {
+          M.toast({ html: data.mensaje || 'No se pudo actualizar.', classes: 'red' });
+        }
+      } catch (err) {
+        ocultarCargando();
+        M.toast({ html: 'Error de conexión.', classes: 'red' });
+      }
     }
 
     function cerrarModalQuienDebe() {
